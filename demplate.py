@@ -66,6 +66,8 @@ class ParseSite:
          curToken = self.nextToken()
          if curToken == START_VAR:
             curNode = self.processVar()
+         elif curToken == START_COM:
+            curNode = self.processCom()
          elif curToken == START_TAG:
             curToken = self.nextToken()
             # if we're in a block, check if we've reached the end of it 
@@ -144,6 +146,13 @@ class ParseSite:
       if not self.nextToken() == END_VAR:
          raise ParseError("End var expected")
       return VarNode(curVar)
+   def processCom(self):
+      if not self.currentToken() == START_COM:
+         raise ParseError("Start com expected")
+      curText = self.nextToken()
+      if not self.nextToken() == END_COM:
+         raise ParseError("End com expected")
+      return ComNode(curText)
    def processText(self):
       return TextNode(self.currentToken())
 
@@ -216,6 +225,12 @@ class VarNode:
          return str(values[self.varName])
       except:
          raise ConversionError("var {{ %s }} undefined" % self.varName)
+
+class ComNode:
+   def __init__(self, body):
+      self.converted = body
+   def convert(self, values):
+      return "<!--"+self.converted+"-->"
 
 class TextNode:
    def __init__(self, body):
