@@ -11,6 +11,7 @@
 #tags to support
 #  if, elif, else | end
 #  for | end
+#TODO remove empty newlines which previously contains only exprs
 
 import re
 import string
@@ -30,7 +31,7 @@ metaChars  = re.compile(r'('+'|'.join(siteTokens)+')')
 #  for | end
 FOR_STR    = re.compile(r'^\s+for\s+([^\s]+)\s+in\s+([^\s]+)\s+$')
 IF_STR     = re.compile(r'^\s+if\s+(.*?)\s+$')
-ELIF_STR   = re.compile(r'^\s+elif\s+([^\s]+)\s+$')
+ELIF_STR     = re.compile(r'^\s+elif\s+(.*?)\s+$')
 ELSE_STR   = re.compile(r'^\s+else\s+$')
 END_FOR    = re.compile(r'^\s+endfor\s+$')
 END_IF     = re.compile(r'^\s+endif\s+$')
@@ -61,21 +62,14 @@ class ParseSite:
       return self.tokens[self.curToken]
    def processTokens(self, forBlock=False, rootIfBlock=False, ifBlock=False, elifBlock=False, elseBlock=False):
       siteGroup = SiteNodes() #create new site node group
-
       while self.notLastToken():
          curToken = self.nextToken()
-         print curToken
          if curToken == START_VAR:
             curNode = self.processVar()
          elif curToken == START_TAG:
             curToken = self.nextToken()
             # if we're in a block, check if we've reached the end of it 
             if forBlock or ifBlock or elifBlock or elseBlock or rootIfBlock:
-               #print curToken + "for" + str(forBlock)
-               #print curToken + "if " + str(ifBlock)
-               #print curToken + "eli" + str(elifBlock)
-               #print curToken + "els" + str(elseBlock)
-               #print curToken + "roo" + str(rootIfBlock)
                if forBlock and END_FOR.match(curToken):
                   self.nextToken() # skip over closing tag
                   break
@@ -96,7 +90,6 @@ class ParseSite:
                      self.nextToken() # skip over closing tag
                   break
             # otherwise - hold on - we're doing DEEPER
-            print "DEEPER"
             curNode = self.processTag(rootIfBlock)
          else:
             curNode = self.processText()
@@ -111,10 +104,7 @@ class ParseSite:
       if FOR_STR.match(expr):
          var = FOR_STR.match(expr).group(1)
          cond = FOR_STR.match(expr).group(2)
-         print "BEGIN"
          body = self.processTokens(forBlock=True) # process the body
-         print "ENDDD"
-         print body.myNodes
          curNode = ForNode(var, cond, body)
       elif (IF_STR.match(expr) and rootIfBlock):
          # create an if branch (which also creates the first if node)
@@ -127,7 +117,10 @@ class ParseSite:
          #curNode = ForNode(var, cond, body)
       elif IF_STR.match(expr):
          curNode = self.processIf()
-         #curNode = self.processTokens(ifBlock=True)
+      elif ELIF_STR.match(expr):
+         cond = ELIF_STR.match(expr).group(1)
+         body = self.processTokens(elifBlock=True)
+         curNode = IfNode("elif", cond, body)
       elif ELSE_STR.match(expr):
          body = self.processTokens(elseBlock=True)
          expr = "True"  # always evaluate an else statement
@@ -139,6 +132,7 @@ class ParseSite:
       # add if, elif, else to site tree
       # not strictly neceessary when you think about but probably best practice...
       # (i.e. couldn't we just combine evaluation and node creation :P)
+
       # go back so we can capture the leading if
       self.curToken-=3
       body = self.processTokens(rootIfBlock=True)
@@ -158,40 +152,25 @@ class SiteNodes():
       self.myNodes = []
    def addNode(self, node):
       self.myNodes.append(node)
-   def convert(self):
+   def convert(self, values):
       converted = ""
-      print "SiteNodes convert"
-      print self.myNodes
       for node in self.myNodes:
-         print "herro"
-         print node.convert()
-         print "goodbry"
-         converted += node.convert()
+         converted += node.convert(values)
       return converted
-   def convertIf(self):
+   def convertIf(self, values):
       for node in self.myNodes:  #loop over nodes until we find true one
-         if node.evaluate():
+         if node.evaluate(values):
             break
-      return node.convert() #convert true node
+      return node.convert(values) #convert true node
 
 class IfBranch:
    def __init__(self, body):
-      self.inners = []
-      self.types = {'if':1, 'elif':0, 'else':0}
       self.body = body
-      # create our leading if node (as we will always have an if block)
-   #def addNode(self, nodeType, expr):
-   #   innerNode = IfNode(nodeType, expr)
-   #   self.inners.append(innerNode)
-   #   self.types[noType] += 1
-   #def convert(self):
-      print self.inners
-   def convert(self):
+   def convert(self, values):
       self.converted = ""
       #for node in self.body:
       #   self.converted += node.convert()
-      return self.body.convertIf()
-
+      return self.body.convertIf(values)
 
 class IfNode:
    def __init__(self, ifType, expr, body):
@@ -203,55 +182,59 @@ class IfNode:
       return self.ifType
    #def addBody(body):
    #   self.body = body
-   def evaluate(self):
-      return eval(self.expr)
-   def convert(self):
-      return self.body.convert()
+   def evaluate(self, values):
+      return eval(self.expr, values)
+   def convert(self, values):
+      return self.body.convert(values)
 
 class ForNode:
    def __init__(self, variable, cond, body):
       self.variable = variable
       self.cond = cond
       self.body = body
-   def convert(self):
+   def convert(self, values):
       #self.converted = ""
       #for node in self.body:
       #   self.converted += node.convert()
       converted = ""
       # use a dictionary fool !
       # http://stackoverflow.com/a/5599313/1813955
-      for tempVar in eval(self.cond, globals()):
-         exec(self.variable + " = " + tempVar, globals())
-         converted += self.body.convert()
+      for tempVar in eval(self.cond, values):
+         #exec(self.variable + " = " + tempVar, locals())
+         values[self.variable] = tempVar
+         converted += self.body.convert(values)
       return converted
 
 class VarNode:
    def __init__(self, varName):
       self.varName = varName.strip()
       self.converted = ""
-   def convert(self):
+   def convert(self, values):
       try:
-         return str(eval(self.varName, globals()))
+         #return str(eval(self.varName, locals()))
+         #print values
+         return str(values[self.varName])
       except:
          raise ConversionError("var {{ %s }} undefined" % self.varName)
 
 class TextNode:
    def __init__(self, body):
       self.converted = body
-   def convert(self):
+   def convert(self, values):
       return self.converted
 
 
-athlete_list = ['john', 'jay', 'smith']
 
+myVars = {
+   'your_name' : 'Desmond',
+   'your_age' : 6,
+   'athlete_list' : ['john', 'jay', 'smith']
+}
 
 filename = "test.html"
 site = open(filename, "r").read()
 parser = ParseSite(site)
-parser.showTokens()
-completeSite = parser.processTokens()
+completeSite = parser.processTokens() #returns a SiteNodes group
 
-print "huh"
-print completeSite.convert()
-print "huh"
+print completeSite.convert(myVars)
 
