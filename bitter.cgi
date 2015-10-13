@@ -24,7 +24,7 @@ form = cgi.FieldStorage()
 username = ""
 password = ""
 page = "home"
-headers = {}
+headers = "Content-Type: text/html"
 cookies = SimpleCookie()
 sid = ""
 siteVariables = {
@@ -49,6 +49,9 @@ except KeyError:
 # session creation adapted from 
 # http://code.activestate.com/recipes/325484-a-very-simple-session-handling-example/
 def doLogin():
+   global page
+   global headers
+   global username
    username = form.getfirst("username", "").lower()
    password = form.getfirst("password", "")
    password = hashlib.md5(password).hexdigest()
@@ -57,6 +60,9 @@ def doLogin():
    conn.commit()
    result = db_conn.fetchone()
    if result:
+      #page = "feed"
+      headers = "Location: ?page=feed"
+      username = result["username"]
       createSession(username)
 
 def createSession(username):
@@ -71,20 +77,21 @@ def generateHash():
    hashedString = hashlib.sha256(hashString).hexdigest()
    return hashedString
 
-def showHeaders(headers={}):
-   if (len(headers.items()) == 0):
-      headers['Content-type'] = 'text/html'
-   for envVar, var in headers.items():
-      print "%s: %s" % (envVar, var)
-      print cookies.output()
-      print
+#def showHeaders(headers={}):
+#   if (len(headers.items()) == 0):
+#      headers['Content-type'] = 'text/html'
+#   for envVar, var in headers.items():
+#      print "%s: %s" % (envVar, var)
+#      print cookies.output()
+#      print
 
 def checkSession():
-   global page
    global username
    # check for magic cookie
    # http://webpython.codepoint.net/cgi_retrieve_the_cookie
    cookieString = os.environ.get('HTTP_COOKIE')
+   if not cookieString:
+      return False
    cookies.load(cookieString)
    sid = cookies['sid'].value
    # check if session exists
@@ -92,14 +99,76 @@ def checkSession():
    conn.commit()
    result = db_conn.fetchone()
    if result:
-      page = "feed"
       username = result["username"]
+      return True
+   return False
+
+def doLogout():
+   global headers
+   if checkSession():
+      sid = cookies['sid'].value
+      db_conn.execute('DELETE FROM sessions WHERE sid=?', (sid, ))
+      conn.commit()
+   headers = "Location: ?page=home"
+
+def convertTime(targetTime):
+   convertedTime = time.strftime('%m/%d/%Y %H:%M:%S',  time.gmtime(targetTime))
+   return convertedTime
 
 login = form.getfirst("login-btn", "")
-if (login):
+if login:
    doLogin()
+   page = "feed"
+elif page == "logout":
+   doLogout()
+   page = "home"
+elif checkSession():
+   if (page == "home"):
+      page = "feed"
 else:
-   checkSession()
+   page = "home"
+
+#print "Content-type: text/plan"
+#print 
+#print "hello"
+# load page variables
+page = "feed"
+username = "DaisyFuentes"
+if page == "feed":
+   # populate feed
+   # get listeners
+   listeners = (username, )
+   db_conn.execute('SELECT * FROM listeners WHERE username=?', (username, ))
+   selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.username=?"
+   for row in db_conn:
+      selectString += " OR bleats.username=?"
+      listeners = (str(row['listens']), ) + listeners
+   selectString += " ORDER BY bleats.time DESC"
+   db_conn.execute(selectString, listeners)
+   siteVariables['myFeed'] = []
+   for row in db_conn:
+      curRow = {}
+      for key in row.keys():
+         if key == "time":
+            curRow[key] = convertTime(row[key])
+         else:
+            curRow[key] = row[key]
+      siteVariables['myFeed'].append(curRow)
+   conn.commit()
+   # get user data
+   db_conn.execute('SELECT * FROM users WHERE username=?', (username, ))
+   result = db_conn.fetchone()
+   siteVariables['myDetails'] = {}
+   if result:
+      siteVariables['myDetails']['full_name'] = result['full_name']
+      siteVariables['myDetails']['username'] = result['username']
+      siteVariables['myDetails']['avatar'] = result['profile_pic']
+   db_conn.execute('SELECT COUNT(*) FROM bleats WHERE username=?', (username, ))
+   siteVariables['myDetails']['bleats'] = db_conn.fetchone()[0]
+   db_conn.execute('SELECT COUNT(*) FROM listeners WHERE username=?', (username, ))
+   siteVariables['myDetails']['following'] = db_conn.fetchone()[0]
+   db_conn.execute('SELECT COUNT(*) FROM listeners WHERE listens=?', (username, ))
+   siteVariables['myDetails']['followers'] = db_conn.fetchone()[0]
 
 
 # process relevant page (#TODO if statement this so we don't have massive XSS risks)
@@ -109,7 +178,8 @@ parser = ParseSite(site)
 completeSite = parser.processTokens() #returns a SiteNodes group
 
 # show page
-showHeaders(headers)
+print headers
+print cookies.output()
+print
 print completeSite.convert(siteVariables)
 
-print username

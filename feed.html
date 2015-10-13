@@ -8,8 +8,20 @@
 
 
 <nav class="navbar navbar-default navbar-fixed-top default-pos">
-   <div class="container">
-      <div class="header-icon"></div>
+   <div class="header-wrapper">
+      <div class="header-icon">
+         <div class="header-right-components">
+            <div class="input-group inline" role="group">
+               <input type="text" class="form-control" placeholder="Search for...">
+               <span class="input-group-btn">
+                  <button class="btn btn-default" type="button">Go!</button>
+               </span>
+            </div>
+            <div class="input-group inline" role="group">
+               <a href="?page=logout"><button class="btn btn-primary" name="logout-btn" id="logout-btn">Log out</button></a>
+            </div>
+         </div>
+      </div>
    </div>
 </nav>
 
@@ -17,9 +29,11 @@
    <div class="feed-trends col-md-3">
       <div class="panel panel-default summary-panel">
          <div class="panel-body">
-            John Smith <br>
-            Tweets: <br>
-            Following: <br>
+            <img class="summary-avatar" src="{{ myDetails|avatar }}"> <br>
+            <b>{{ myDetails|full_name }}</b> <span class="grey-text" style="font-size: 12px;">(@{{ myDetails|username }})</span><br>
+            Bleats: {{ myDetails|bleats }}<br>
+            Following: {{ myDetails|following }}<br>
+            Followers: {{ myDetails|followers }}<br>
          </div>
       </div>
       <div class="panel panel-default trends-panel">
@@ -58,18 +72,17 @@
             </form>
          </div>
          <div class="tweet-collection">
+            {% for row in myFeed %}
             <div class="panel-body tweet-body row">
-               <img class="tweet-avatar" src="img/default-pic-small.jpg">
-               Tweet panel <br>
+               <div class="bleet-avatar-wrapper">
+                  <img class="bleet-avatar" src="{{ row|profile_pic }}">
+               </div>
+               <div class="bleet-text">
+                  <b>{{ row|full_name }}</b> <span class="grey-text">@{{ row|username }} | {{ row|time }}</span><br>
+                  {{ row|bleat }}
+               </div>
             </div>
-            <div class="panel-body tweet-body row">
-               <img class="tweet-avatar" src="img/default-pic-small.jpg">
-               Tweet panel <br>
-            </div>
-            <div class="panel-body tweet-body row">
-               <img class="tweet-avatar" src="img/default-pic-small.jpg">
-               Tweet panel <br>
-            </div>
+            {% endfor %}
          </div>
       </div>
    </div>

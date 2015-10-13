@@ -14,6 +14,7 @@ import hashlib
 USER_DIR    = "/import/adams/2/z3459551/public_html/bitter/dataset-small/users/"
 BLEAT_DIR   = "/import/adams/2/z3459551/public_html/bitter/dataset-small/bleats/"
 DEFAULT_PIC = "https://www.gravatar.com/avatar/d489b737cd6a6074c634ebfbb2a39396.jpg"
+PROFILE_DIR = "http://www.cse.unsw.edu.au/~cs2041/15s2/assignments/bitter/dataset-small/users/"
 
 def createTables():
    c.execute('''CREATE TABLE users (
@@ -103,6 +104,8 @@ for a in glob.glob(USER_DIR+"*"):
 
    userSearch = r"" + re.escape(USER_DIR) + "(.*)"
    userDict['username'] = re.match(userSearch, a).group(1)
+   if profile_pic != DEFAULT_PIC:
+      profile_pic = PROFILE_DIR + userDict['username'] + "/profile.jpg"
 
    for line in open(userFile):
       line = line.strip()

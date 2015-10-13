@@ -17,14 +17,55 @@
 form {
    margin-bottom: 0px;
 }
+.inline {
+   display: inline-block;
+}
+.grey-text {
+   color: #999999;
+}
 
 /* header styles */
+.header-icon {
+   width: 100%;
+   padding-left: 15px;
+   padding-right: 15px;
+}
 .header-icon {
    background: url("../img/lime-small.png") no-repeat center;
    background-size: 30px;
    height: 30px;
    margin-top: 10px;
+   position: relative;
 }
+.header-right-components {
+   width: 300px;
+   float: right;
+   text-align: right;
+}
+.header-right-components .input-group {
+   vertical-align: middle;
+   margin-left: 5px;
+}
+.header-right-components .input-group .form-control {
+   margin-bottom: 0px;
+   height:30px;
+   width: 170px;
+}
+.header-right-components .input-group .input-group-btn {
+   width: inherit;
+}
+.header-right-components .input-group .input-group-btn .btn {
+   margin-bottom: 0px;
+   height:30px;
+   padding: 0 6px;
+}
+.header-right-components .input-group .btn {
+   margin-bottom: 0px;
+   height:30px;
+   padding: 0 6px;
+}
+
+
 
 /* Homepage styles */
 .front-wrapper {
@@ -118,9 +159,23 @@ form {
    padding: 15px;
    margin: 0px;
 }
-.tweet-avatar {
-   width: 50px;
+.bleet-avatar-wrapper {
+   display: inline-block;
+   vertical-align: middle;
+   width: 11%;
+   padding-right: 1%;
+}
+.bleet-avatar {
+   width: 100%;
    padding-right: 5px;
+}
+.bleet-text {
+   display: inline-block;
+   vertical-align: middle;
+   width: 84%;
+}
+.summary-avatar {
+   width: 100%;
 }
 
 
