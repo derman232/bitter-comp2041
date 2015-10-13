@@ -1,0 +1,129 @@
+/* general styles */
+.input-group .form-control {
+   margin-bottom: 10px;
+}
+.hp-background {
+   background: url("../img/home-background.jpg") no-repeat center center fixed;
+}
+.clear-background {
+   background-color: #f5f8fa;
+}
+.default-pos {
+   position: static;
+}
+.zero-padding {
+   padding: 0px;
+}
+form {
+   margin-bottom: 0px;
+}
+
+/* header styles */
+.header-icon {
+   background: url("../img/lime-small.png") no-repeat center;
+   background-size: 30px;
+   height: 30px;
+   margin-top: 10px;
+}
+
+/* Homepage styles */
+.front-wrapper {
+   width: 100%;
+}
+.front-block {
+   max-width: 900px;
+   margin: 0 auto;
+   color: white;
+}
+.front-welcome p {
+   font-size: 20px;
+   line-height: 31px;
+}
+.front-login {
+}
+.front-login .login-box {
+   border-radius: 5px;
+   padding: 10px;
+   background-color: white;
+   color: black;
+}   
+.front-login .signup-box {
+   border-radius: 5px;
+   padding: 5px 10px 10px 10px;
+   background-color: white;
+   color: black;
+}
+.front-login .input-group {
+   width: 100%;
+}
+.front-login form {
+   margin-bottom: 5px;
+}
+.front-login .input-group .form-control {
+   font-size: 14px;
+   height: 32px;
+   border-radius: 5px !important;
+   margin: 3px 0;
+}
+.front-login .input-group .btn {
+   font-size: 14px;
+   height: 32px;
+   width: 100%;
+   margin: 3px 0;
+}
+.front-login .forgot-text {
+   color: gray;
+}
+.spacer {
+   padding: 10px;
+}
+
+
+/* Feed styles */
+.feed-wrapper {
+   width: 100%;
+   max-width: 1200px;
+   margin: 0 auto;
+}
+.tweets-panel .input-group {
+   width: 100%;
+}
+.tweets-panel .input-group #new-tweet {
+   resize: none;
+}
+.tweets-panel .input-group .tweet-btn {
+   padding-left: 10px;
+   overflow: hidden;
+}
+.tweets-panel .input-group .tweet-btn #tweet-btn {
+   padding: 5px;
+   max-width: 100%;
+   width: 65%;
+   float: right; 
+}
+.tweets-panel .input-group .char-count {
+   text-align: right;
+   vertical-align: middle;
+   height: 34px;
+   line-height: 34px;
+   padding-right: 0px;
+   display: inline-block;
+   width: 25%;
+}
+.tweets-panel .tweet-submit {
+   display: none;
+}
+.tweets-panel .tweet-body {
+   border-bottom: 1px solid #ddd;
+   padding: 15px;
+   margin: 0px;
+}
+.tweet-avatar {
+   width: 50px;
+   padding-right: 5px;
+}
+
+
+
+
+
