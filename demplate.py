@@ -11,6 +11,7 @@
 #tags to support
 #  if, elif, else | end
 #  for | end
+#  include
 #TODO remove empty newlines which previously contains only exprs
 
 import re
@@ -29,12 +30,15 @@ metaChars  = re.compile(r'('+'|'.join(siteTokens)+')')
 # setup conditional statements
 #  if, elif, else | end
 #  for | end
+#  include
+
 FOR_STR    = re.compile(r'^\s+for\s+([^\s]+)\s+in\s+([^\s]+)\s+$')
 IF_STR     = re.compile(r'^\s+if\s+(.*?)\s+$')
-ELIF_STR     = re.compile(r'^\s+elif\s+(.*?)\s+$')
+ELIF_STR   = re.compile(r'^\s+elif\s+(.*?)\s+$')
 ELSE_STR   = re.compile(r'^\s+else\s+$')
 END_FOR    = re.compile(r'^\s+endfor\s+$')
 END_IF     = re.compile(r'^\s+endif\s+$')
+INCLUDE_ST = re.compile(r'^\s+include\s+\((.*)\)\s+$')
 
 class ParseError(Exception):
    pass
@@ -98,12 +102,13 @@ class ParseSite:
          siteGroup.addNode(curNode)
       return siteGroup
    def processTag(self, rootIfBlock=False):
-      #if not self.currentToken() == START_TAG:
-      #   raise ParseError("Start tag expected")
       expr = self.currentToken()
       if not self.nextToken() == END_TAG:
          raise ParseError("End tag expected")
-      if FOR_STR.match(expr):
+      if INCLUDE_ST.match(expr):
+         includeFile = INCLUDE_ST.match(expr).group(1)
+         curNode = IncludeNode(includeFile)
+      elif FOR_STR.match(expr):
          var = FOR_STR.match(expr).group(1)
          cond = FOR_STR.match(expr).group(2)
          body = self.processTokens(forBlock=True) # process the body
@@ -113,10 +118,6 @@ class ParseSite:
          cond = IF_STR.match(expr).group(1)
          body = self.processTokens(ifBlock=True)
          curNode = IfNode("if", cond, body)
-         #self.processIf(cond, body)
-         #print IF_STR.match(expr).group(1)
-         #body = self.processTokens(ifBlock=True) # process the body
-         #curNode = ForNode(var, cond, body)
       elif IF_STR.match(expr):
          curNode = self.processIf()
       elif ELIF_STR.match(expr):
@@ -171,6 +172,16 @@ class SiteNodes():
          if node.evaluate(values):
             break
       return node.convert(values) #convert true node
+
+class IncludeNode:
+   def __init__(self, site):
+      self.include_site = site
+   def convert(self, values):
+      # open and parse new site
+      childSite = open(self.include_site, "r").read()
+      childParse = ParseSite(childSite)
+      completeChildSite = childParse.processTokens()
+      return completeChildSite.convert(values)
 
 class IfBranch:
    def __init__(self, body):
@@ -246,10 +257,4 @@ myVars = {
    'athlete_list' : ['john', 'jay', 'smith']
 }
 
-filename = "test.html"
-site = open(filename, "r").read()
-parser = ParseSite(site)
-completeSite = parser.processTokens() #returns a SiteNodes group
-
-print completeSite.convert(myVars)
 

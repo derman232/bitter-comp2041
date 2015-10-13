@@ -1,0 +1,91 @@
+<html>
+<head><title>Bitter</title></head>
+<link rel="stylesheet" type="text/css" href="bootstrap/css/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="css/styles.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+<script src="js/scripts.js"></script>
+<body class="clear-background">
+
+
+<nav class="navbar navbar-default navbar-fixed-top default-pos">
+   <div class="container">
+      <div class="header-icon"></div>
+   </div>
+</nav>
+
+<div class="feed-wrapper row">
+   <div class="feed-trends col-md-3">
+      <div class="panel panel-default summary-panel">
+         <div class="panel-body">
+            John Smith <br>
+            Tweets: <br>
+            Following: <br>
+         </div>
+      </div>
+      <div class="panel panel-default trends-panel">
+         <div class="panel-heading">
+            <h3 class="panel-title">Trends</h3>
+         </div>
+         <div class="panel-body">
+            John Smith <br>
+            Tweets: <br>
+            Following: <br>
+         </div>
+      </div>
+   </div>
+   <div class="feed-tweets col-md-6">
+      <div class="panel panel-default suggestions-panel">
+         <div class="panel-heading">
+            <h3 class="panel-title">You might enjoy listening to these people</h3>
+         </div>
+         <div class="panel-body">
+            John Smith <br>
+         </div>
+      </div>
+      <div class="panel panel-default tweets-panel">
+         <div class="panel-heading">
+            <form method="post" id="new-tweet">
+               <div class="input-group">
+                 <textarea rows="1" class="form-control" name="new-tweet" id="new-tweet" placeholder="Why so bitter?"></textarea>
+                 <div class="tweet-submit row">
+                    <div class="col-md-8"></div>
+                    <div class="col-md-4 tweet-btn">
+                       <div class="char-count" name="char-count">140</div>
+                       <button class="btn btn-primary" name="tweet-btn" id="tweet-btn" value="submit">Tweet</button>
+                    </div>
+                 </div>
+               </div>
+            </form>
+         </div>
+         <div class="tweet-collection">
+            <div class="panel-body tweet-body row">
+               <img class="tweet-avatar" src="img/default-pic-small.jpg">
+               Tweet panel <br>
+            </div>
+            <div class="panel-body tweet-body row">
+               <img class="tweet-avatar" src="img/default-pic-small.jpg">
+               Tweet panel <br>
+            </div>
+            <div class="panel-body tweet-body row">
+               <img class="tweet-avatar" src="img/default-pic-small.jpg">
+               Tweet panel <br>
+            </div>
+         </div>
+      </div>
+   </div>
+   <div class="feed-trends col-md-3">
+      <div class="panel panel-default trends-panel">
+         <div class="panel-body">
+            [info..]
+         </div>
+      </div>
+   </div>
+
+
+   </div>
+   <div class="feed-sidebar col-md-3">
+   </div>
+</div>
+
+</body>
+</html>

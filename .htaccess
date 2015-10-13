@@ -1,0 +1,12 @@
+DirectoryIndex bitter.cgi error.html
+# with unknown path i don't see how we'd get this to work easily
+#<IfModule mod_rewrite.c>
+#    # Redirect /bitter.py to / (optional, but recommended [prevent having two pages])
+#    RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /.*bitter\.cgi
+#    RewriteRule ^bitter.cgi/?(.*)$ $1 [R=301,L]
+#
+#    # Run everything else but real files through index.php
+#    RewriteCond %{REQUEST_FILENAME} !-d
+#    RewriteCond %{REQUEST_FILENAME} !-f
+#    RewriteRule ^(.*)$ bitter.cgi/$1?%{QUERY_STRING} [L]
+#</IfModule>

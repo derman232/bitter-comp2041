@@ -9,6 +9,7 @@
 import glob
 import sqlite3
 import re
+import hashlib
 
 USER_DIR    = "/Users/derek/Sites/bitter/dataset-small/users/"
 BLEAT_DIR   = "/Users/derek/Sites/bitter/dataset-small/bleats/"
@@ -105,6 +106,7 @@ for a in glob.glob(USER_DIR+"*"):
       details[0] = details[0].strip()
       details[1] = details[1].strip()
       userDict[details[0]] = details[1]
+   userDict['password'] = hashlib.md5(userDict['password']).hexdigest() #hash password
    values = (
       userDict['email']         ,
       userDict['full_name']     ,
