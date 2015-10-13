@@ -36,6 +36,10 @@ def createTables():
    latitude        REAL,
    time            INT ,
    bleat           TEXT )''')
+   c.execute('''CREATE TABLE sessions (
+   username        TEXT,
+   sid             TEXT )''')
+
 
 
 conn = sqlite3.connect('bitter.db');
