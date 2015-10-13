@@ -32,6 +32,7 @@ metaChars  = re.compile(r'('+'|'.join(siteTokens)+')')
 #  for | end
 #  include
 
+VAR_STR    = re.compile(r'^\s+([^\s]+)\|([^\s]+)\s+$')
 FOR_STR    = re.compile(r'^\s+for\s+([^\s]+)\s+in\s+([^\s]+)\s+$')
 IF_STR     = re.compile(r'^\s+if\s+(.*?)\s+$')
 ELIF_STR   = re.compile(r'^\s+elif\s+(.*?)\s+$')
@@ -146,6 +147,12 @@ class ParseSite:
       curVar = self.nextToken()
       if not self.nextToken() == END_VAR:
          raise ParseError("End var expected")
+      if VAR_STR.match(curVar):
+         var = VAR_STR.match(curVar).group(1)
+         index = VAR_STR.match(curVar).group(2)
+         if index.isdigit():
+            index = int(index)
+         return VarNode(var, index)
       return VarNode(curVar)
    def processCom(self):
       if not self.currentToken() == START_COM:
@@ -226,14 +233,16 @@ class ForNode:
       return converted
 
 class VarNode:
-   def __init__(self, varName):
+   def __init__(self, varName, index=None):
       self.varName = varName.strip()
+      self.index = index
       self.converted = ""
    def convert(self, values):
       try:
-         #return str(eval(self.varName, locals()))
-         #print values
-         return str(values[self.varName])
+         if (self.index != None):
+            return str(values[self.varName][self.index])
+         else:
+            return str(values[self.varName])
       except:
          raise ConversionError("var {{ %s }} undefined" % self.varName)
 
