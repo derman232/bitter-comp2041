@@ -258,12 +258,3 @@ class TextNode:
    def convert(self, values):
       return self.converted
 
-
-
-myVars = {
-   'your_name' : 'Desmond',
-   'your_age' : 6,
-   'athlete_list' : ['john', 'jay', 'smith']
-}
-
-
