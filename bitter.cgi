@@ -25,6 +25,7 @@ username = ""
 password = ""
 page = "home"
 headers = "Content-Type: text/html"
+login = ""
 cookies = SimpleCookie()
 sid = ""
 siteVariables = {
@@ -66,6 +67,7 @@ def doLogin():
       createSession(username)
 
 def createSession(username):
+   global page
    page = "feed"   #open user's feed on login
    sid = generateHash()
    cookies['sid'] = sid
@@ -107,9 +109,9 @@ def doLogout():
    global headers
    if checkSession():
       sid = cookies['sid'].value
+      sid = cookies['sid']['expires'] = -10
       db_conn.execute('DELETE FROM sessions WHERE sid=?', (sid, ))
       conn.commit()
-   headers = "Location: ?page=home"
 
 def convertTime(targetTime):
    convertedTime = time.strftime('%m/%d/%Y %H:%M:%S',  time.gmtime(targetTime))
@@ -121,19 +123,19 @@ if login:
    page = "feed"
 elif page == "logout":
    doLogout()
+   headers = "Location: ?page=home"
    page = "home"
 elif checkSession():
    if (page == "home"):
+      headers = "Location: ?page=feed"
       page = "feed"
 else:
    page = "home"
 
-#print "Content-type: text/plan"
-#print 
 #print "hello"
 # load page variables
-page = "feed"
-username = "DaisyFuentes"
+#page = "feed"
+#username = "DaisyFuentes"
 if page == "feed":
    # populate feed
    # get listeners
@@ -182,4 +184,6 @@ print headers
 print cookies.output()
 print
 print completeSite.convert(siteVariables)
-
+print page
+print username
+print sid
