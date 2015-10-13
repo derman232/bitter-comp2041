@@ -20,7 +20,7 @@ MAGIC_STRING = "sjdkfls243u892rjf" # for hashes
 # get params
 form = cgi.FieldStorage()
 
-# setup globals
+# setup globals (TODO we'll see if this is necessary)
 username = ""
 password = ""
 page = "home"
@@ -36,6 +36,7 @@ siteVariables = {
 
 # connect to database
 conn = sqlite3.connect(DB_NAME);
+conn.row_factory = sqlite3.Row
 db_conn = conn.cursor()
 
 # set homepage param
@@ -48,6 +49,17 @@ except KeyError:
 # session creation adapted from 
 # http://code.activestate.com/recipes/325484-a-very-simple-session-handling-example/
 def doLogin():
+   username = form.getfirst("username", "").lower()
+   password = form.getfirst("password", "")
+   password = hashlib.md5(password).hexdigest()
+
+   db_conn.execute('SELECT * FROM users WHERE lower(username)=? AND password=?', (username, password))
+   conn.commit()
+   result = db_conn.fetchone()
+   if result:
+      createSession(username)
+
+def createSession(username):
    page = "feed"   #open user's feed on login
    sid = generateHash()
    cookies['sid'] = sid
@@ -67,17 +79,28 @@ def showHeaders(headers={}):
       print cookies.output()
       print
 
-login = form.getfirst("login-btn", "").lower()
-if (login):
-   username = form.getfirst("username", "").lower()
-   password = form.getfirst("password", "")
-   password = hashlib.md5(password).hexdigest()
-
-   db_conn.execute('SELECT * FROM users WHERE lower(username)=? AND password=?', (username, password))
+def checkSession():
+   global page
+   global username
+   # check for magic cookie
+   # http://webpython.codepoint.net/cgi_retrieve_the_cookie
+   cookieString = os.environ.get('HTTP_COOKIE')
+   cookies.load(cookieString)
+   sid = cookies['sid'].value
+   # check if session exists
+   db_conn.execute('SELECT * FROM sessions WHERE sid=?', (sid, ))
    conn.commit()
    result = db_conn.fetchone()
    if result:
-      doLogin()
+      page = "feed"
+      username = result["username"]
+
+login = form.getfirst("login-btn", "")
+if (login):
+   doLogin()
+else:
+   checkSession()
+
 
 # process relevant page (#TODO if statement this so we don't have massive XSS risks)
 filename = page+".html"
@@ -89,4 +112,4 @@ completeSite = parser.processTokens() #returns a SiteNodes group
 showHeaders(headers)
 print completeSite.convert(siteVariables)
 
-
+print username
