@@ -126,7 +126,7 @@ for a in glob.glob(USER_DIR+"*"):
    for line in userDict['listens'].split():
       values = (
          userDict['username'],
-         line + "'"          
+         line
       )
       c.execute("INSERT INTO listeners VALUES (?, ?)", values)
    userDict = userDict.fromkeys(userDict, '')
