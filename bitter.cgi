@@ -95,7 +95,10 @@ def checkSession():
    if not cookieString:
       return False
    cookies.load(cookieString)
-   sid = cookies['sid'].value
+   try:
+      sid = cookies['sid'].value
+   except:
+      return False
    # check if session exists
    db_conn.execute('SELECT * FROM sessions WHERE sid=?', (sid, ))
    conn.commit()
