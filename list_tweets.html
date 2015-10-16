@@ -1,0 +1,14 @@
+<div class="tweet-collection">
+   {% for row in myFeed %}
+   <div class="panel-body tweet-body row">
+      <div class="bleet-avatar-wrapper">
+         <img class="bleet-avatar" src="{{ row|profile_pic }}">
+      </div>
+      <div class="bleet-text">
+         <b>{{ row|full_name }}</b> <span class="grey-text">@{{ row|username }} | {{ row|time }}</span><br>
+         {{ row|bleat }}
+      </div>
+   </div>
+   {% endfor %}
+</div>
+

@@ -15,7 +15,9 @@ $('document').ready(function(){
          $(".tweet-submit").hide();
       }
    });
-
+   $('textarea#new-tweet').bind('input propertychange', function() {
+      $(".char-count").html(140 - $("textarea#new-tweet").val().length);
+   });
 });
 
 

@@ -120,20 +120,27 @@ def convertTime(targetTime):
    convertedTime = time.strftime('%m/%d/%Y %H:%M:%S',  time.gmtime(targetTime))
    return convertedTime
 
-login = form.getfirst("login-btn", "")
+login  = form.getfirst("login-btn", "")
+search = form.getfirst("main-search", "")
 if login:
    doLogin()
    page = "feed"
+elif search:
+   page = "search"
 elif page == "logout":
    doLogout()
    headers = "Location: ?page=home"
    page = "home"
-elif checkSession():
-   if (page == "home"):
-      headers = "Location: ?page=feed"
+elif page == "home":
+   if checkSession():
+      headers = "Location: ?page=feed" #if logged in redirect to feed
       page = "feed"
+elif page == "feed":
+   if not checkSession():
+      headers = "Location: ?page=home" #if logged in redirect to feed
+      page = "home"
 else:
-   page = "home"
+   page = "error"
 
 #print "hello"
 # load page variables
@@ -190,3 +197,9 @@ print completeSite.convert(siteVariables)
 print page
 print username
 print sid
+
+search = form.getfirst("main-search", "")
+print search
+search = form.getfirst("search-txt", "")
+print search
+

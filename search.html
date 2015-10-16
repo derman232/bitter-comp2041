@@ -44,7 +44,8 @@
    <div class="feed-tweets col-md-6">
       <div class="panel panel-default suggestions-panel">
          <div class="panel-heading">
-            <h3 class="panel-title">You might enjoy listening to these people</h3>
+            <h3 class="panel-title">Users which match your results
+            <button class="btn btn-primary users-search-btn" name="users-search-btn" id="users-search-btn" value="submit">View All</button></h3>
          </div>
          <div class="panel-body">
             {% include (list_users.html) %}
@@ -52,25 +53,16 @@
       </div>
       <div class="panel panel-default tweets-panel">
          <div class="panel-heading">
-            <form method="post" id="new-tweet">
-               <div class="input-group">
-                 <textarea rows="1" class="form-control" name="new-tweet" id="new-tweet" placeholder="Why so bitter?"></textarea>
-                 <div class="tweet-submit row">
-                    <div class="col-md-8"></div>
-                    <div class="col-md-4 tweet-btn">
-                       <div class="char-count" name="char-count">140</div>
-                       <button class="btn btn-primary" name="tweet-btn" id="tweet-btn" value="submit">Tweet</button>
-                    </div>
-                 </div>
-               </div>
-            </form>
+            <h3 class="panel-title">Matching tweets
          </div>
          {% include (list_tweets.html) %}
       </div>
    </div>
    <div class="feed-trends col-md-3">
       <div class="panel panel-default trends-panel">
-         {% include (info_box.html) %}
+         <div class="panel-body">
+            [info..]
+         </div>
       </div>
    </div>
 

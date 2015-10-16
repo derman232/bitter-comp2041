@@ -23,6 +23,15 @@ form {
 .grey-text {
    color: #999999;
 }
+.small-text {
+   font-size: 12px;
+}
+.follow-btn {
+   float: right;
+   height: 25px;
+   padding: 0 6px;
+}
+
 
 /* header styles */
 .header-icon {
@@ -58,6 +67,10 @@ form {
    margin-bottom: 0px;
    height:30px;
    padding: 0 6px;
+}
+.users-search-btn {
+   height: 25px;
+   padding: 0 14px;
 }
 .header-right-components .input-group .btn {
    margin-bottom: 0px;
@@ -176,6 +189,24 @@ form {
 }
 .summary-avatar {
    width: 100%;
+}
+.profile-avatar {
+   display: inline-block;
+   vertical-align: middle;
+   width: 35%;
+   padding-right: 1%;
+}
+
+/* search page styles */
+.search-avatar-wrapper {
+   display: inline-block;
+   vertical-align: middle;
+   width: 20%;
+   padding-right: 1%;
+}
+.search-avatar-text {
+   vertical-align: middle;
+   display: inline-block;
 }
 
 
