@@ -6,26 +6,7 @@
 <script src="js/scripts.js"></script>
 <body class="clear-background">
 
-
-<nav class="navbar navbar-default navbar-fixed-top default-pos">
-   <div class="header-wrapper">
-      <div class="header-icon">
-         <div class="header-right-components">
-            <div class="input-group inline" role="group">
-               <form method="get" id="search-form">
-                  <input type="text" class="form-control" name="search-txt" id="search-txt" placeholder="Search for...">
-                  <span class="input-group-btn">
-                     <button class="btn btn-default" name="main-search" id="main-search" value="submit" type="submit">Go!</button>
-                  </span>
-               </form>
-            </div>
-            <div class="input-group inline" role="group">
-               <a href="?page=logout"><button class="btn btn-primary" name="logout-btn" id="logout-btn">Log out</button></a>
-            </div>
-         </div>
-      </div>
-   </div>
-</nav>
+{% include (loggedin_header.html) %}
 
 <div class="feed-wrapper row">
    <div class="feed-trends col-md-3">

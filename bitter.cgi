@@ -139,7 +139,11 @@ if login:
    doLogin()
    page = "feed"
 elif search:
-   page = "search"
+   if checkSession():
+      page = "search"
+   else:
+      headers = "Location: ?page=home" #if logged in redirect to feed
+      page = "home"
 elif page == "logout":
    doLogout()
    headers = "Location: ?page=home"
@@ -159,17 +163,26 @@ else:
 # load page variables
 #page = "feed"
 #username = "DaisyFuentes"
-if page == "feed":
-   # populate feed
-   # get listeners
-   listeners = (username, )
-   db_conn.execute('SELECT * FROM listeners WHERE username=?', (username, ))
-   selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.username=?"
-   for row in db_conn:
-      selectString += " OR bleats.username=?"
-      listeners = (str(row['listens']), ) + listeners
-   selectString += " ORDER BY bleats.time DESC"
-   db_conn.execute(selectString, listeners)
+if page == "feed" or page == "search":
+   # populate user's feed
+   if page == "feed":
+      listeners = (username, )
+      selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.username=?"
+      # get listeners
+      db_conn.execute('SELECT * FROM listeners WHERE username=?', (username, ))
+      for row in db_conn:
+         selectString += " OR bleats.username=?"
+         listeners = (str(row['listens']), ) + listeners
+      selectString += " ORDER BY bleats.time DESC"
+      db_conn.execute(selectString, listeners)
+   # populate search results
+   elif page == "search":
+      # tweet search results
+      selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE lower(bleat) LIKE (?)"
+      searchString = form.getfirst("search-txt", "").lower()
+      searchString = "%"+searchString+"%"
+      selectString += " ORDER BY bleats.time DESC"
+      db_conn.execute(selectString, (searchString, ))
    siteVariables['myFeed'] = []
    for row in db_conn:
       curRow = {}

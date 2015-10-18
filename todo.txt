@@ -1,0 +1,27 @@
+Display User Information & Bleats 
+Interface (Done)
+Logging In & Out (Done) 
+Search for Users by Username or Full Name
+Sending Bleats
+Displaying Relevant Bleats (Done)
+Listening/Unlistening to Users
+Searching Bleats
+Replying to Bleats
+Pagination of Bleats & Search Results
+Bleat respones
+Account creation
+Profile text
+Password recovery
+Uploading & Deleting Background + Profile Pics
+Editing Information
+Deleting Bleats
+Suspending/Deleting Bitter Account
+Email notifications
+   - when mentioned
+   - when replied to
+   - gain a new listener
+Bleets Attachment
+   - attach images
+   - attach video
+Advanced features
+   - Encrypting passwords
