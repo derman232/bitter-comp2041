@@ -16,6 +16,8 @@ from demplate import *
 
 DB_NAME = "bitter.db"
 MAGIC_STRING = "sjdkfls243u892rjf" # for hashes
+DEBUG = False
+DEBUG_HEADERS = False
 
 # get params
 form = cgi.FieldStorage()
@@ -28,6 +30,13 @@ headers = "Content-Type: text/html"
 login = ""
 cookies = SimpleCookie()
 sid = ""
+
+if DEBUG_HEADERS:
+   print headers
+   print
+   print form
+   print form.getfirst("login-btn", "")
+
 siteVariables = {
    'your_name' : 'Desmond',
    'your_age' : 6,
@@ -55,6 +64,8 @@ def doLogin():
    global username
    username = form.getfirst("username", "").lower()
    password = form.getfirst("password", "")
+   if DEBUG == True: username = "daisyfuentes"
+   if DEBUG == True: password = "giants"
    password = hashlib.md5(password).hexdigest()
 
    db_conn.execute('SELECT * FROM users WHERE lower(username)=? AND password=?', (username, password))
@@ -120,8 +131,10 @@ def convertTime(targetTime):
    convertedTime = time.strftime('%m/%d/%Y %H:%M:%S',  time.gmtime(targetTime))
    return convertedTime
 
-login  = form.getfirst("login-btn", "")
+login = form.getfirst("login-btn", "")
+if DEBUG == True: login = "yes"
 search = form.getfirst("main-search", "")
+
 if login:
    doLogin()
    page = "feed"

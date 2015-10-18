@@ -11,10 +11,19 @@ import sqlite3
 import re
 import hashlib
 
-USER_DIR    = "/import/adams/2/z3459551/public_html/bitter/dataset-small/users/"
-BLEAT_DIR   = "/import/adams/2/z3459551/public_html/bitter/dataset-small/bleats/"
-DEFAULT_PIC = "https://www.gravatar.com/avatar/d489b737cd6a6074c634ebfbb2a39396.jpg"
-PROFILE_DIR = "http://www.cse.unsw.edu.au/~cs2041/15s2/assignments/bitter/dataset-small/users/"
+CSE = False
+
+if CSE:
+   USER_DIR    = "/import/adams/2/z3459551/public_html/bitter/dataset-small/users/"
+   BLEAT_DIR   = "/import/adams/2/z3459551/public_html/bitter/dataset-small/bleats/"
+   DEFAULT_PIC = "https://www.gravatar.com/avatar/d489b737cd6a6074c634ebfbb2a39396.jpg"
+   PROFILE_DIR = "http://www.cse.unsw.edu.au/~cs2041/15s2/assignments/bitter/dataset-small/users/"
+else:
+   USER_DIR    = "/Users/derek/Sites/bitter/dataset-small/users/"
+   BLEAT_DIR   = "/Users/derek/Sites/bitter/dataset-small/bleats/"
+   DEFAULT_PIC = "https://www.gravatar.com/avatar/d489b737cd6a6074c634ebfbb2a39396.jpg"
+   PROFILE_DIR = "http://www.cse.unsw.edu.au/~cs2041/15s2/assignments/bitter/dataset-small/users/"
+
 
 def createTables():
    c.execute('''CREATE TABLE users (
