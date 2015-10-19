@@ -7,10 +7,11 @@
 <body class="clear-background">
 
 {% include (loggedin_header.html) %}
+<div class="large-header-background" style="background: url({{ myDetails|bg_pic }}) no-repeat center; height: 360px; background-size: cover; margin-bottom: 20px;"></div>
 
 <div class="feed-wrapper row">
    <div class="feed-trends col-md-3">
-      {% include (profile_summary.html) %}
+      {% include (public_profile_summary.html) %}
       <div class="panel panel-default trends-panel">
          <div class="panel-heading">
             <h3 class="panel-title">Trends</h3>
@@ -23,18 +24,9 @@
       </div>
    </div>
    <div class="feed-tweets col-md-6">
-      <div class="panel panel-default suggestions-panel">
-         <div class="panel-heading">
-            <h3 class="panel-title">Users which match your results
-            <a href="?page=user_search&search-txt={{ searchString }}&user-search=submit"><button class="btn btn-primary users-search-btn" name="users-search-btn" id="users-search-btn" value="submit">View All</button></h3></a>
-         </div>
-         <div class="panel-body">
-            {% include (list_users.html) %}
-         </div>
-      </div>
       <div class="panel panel-default tweets-panel">
          <div class="panel-heading">
-            <h3 class="panel-title">Matching tweets
+            <h3 class="panel-title">Tweets</h3>
          </div>
          {% include (list_tweets.html) %}
       </div>

@@ -1,0 +1,61 @@
+<html>
+<head><title>Bitter</title></head>
+<link rel="stylesheet" type="text/css" href="bootstrap/css/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="css/styles.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+<script src="js/scripts.js"></script>
+<body class="clear-background">
+
+{% include (loggedin_header.html) %}
+
+<div class="feed-wrapper row">
+   <div class="feed-trends col-md-3">
+      {% include (profile_summary.html) %}
+      <div class="panel panel-default trends-panel">
+         <div class="panel-heading">
+            <h3 class="panel-title">Trends</h3>
+         </div>
+         <div class="panel-body">
+            John Smith <br>
+            Tweets: <br>
+            Following: <br>
+         </div>
+      </div>
+   </div>
+   <div class="feed-tweets col-md-6">
+      <div class="panel panel-default suggestions-panel">
+         <div class="panel-heading">
+            <h3 class="panel-title">Account Settings</h3>
+            <span class="grey-text">Change your basic account settings.</span>
+         </div>
+         {# include max-length things #}
+         <div class="panel-body">
+            <label for="username" class="settings-control-label">Username</label><input id="username" class="form-control settings-inputs" name="username" type="text" value="{{ myDetails|username }}"><br><br>
+            <label for="password" class="settings-control-label">Password</label><input id="password" class="form-control settings-inputs" name="password" type="password" value="" placeholder="Enter a new password"><br><br>
+            <label for="full_name" class="settings-control-label">Your name</label><input id="full_name" class="form-control settings-inputs" name="full_name" type="text" value="{{ myDetails|full_name }}"><br><br>
+            <label for="description" class="settings-control-label">Description</label><textarea id="description" rows="4" class="form-control settings-inputs" name="description" type="text" value="" placeholder="Type in a few words aboot yourself">{{ myDetails|description }}</textarea><br><br>
+            <label for="email" class="settings-control-label">Email</label><input id="email" class="form-control settings-inputs" name="email" type="text" value="{{ myDetails|email }}"><br><br>
+            <label for="location" class="settings-control-label">Location</label><input id="location" class="form-control settings-inputs" name="location" type="text" value="{{ myDetails|home_suburb }}"><br><br>
+            <label for="profile_pic" class="settings-control-label">Profile Picture</label>
+               <img class="settings-avatar" src="{{ myDetails|avatar }}">
+               <input id="profile_pic" class="form-control settings-inputs" name="profile_pic" type="hidden" value=""><br><br>
+            <label for="bg_pic" class="settings-control-label">Background Picture</label>
+               <img class="settings-bg_pic" src="{{ myDetails|bg_pic }}">
+               <input id="bg_pic" class="form-control settings-inputs" name="bg_pic" type="hidden" value=""><br><br>
+         </div>
+      </div>
+   </div>
+   <div class="feed-trends col-md-3">
+      <div class="panel panel-default trends-panel">
+         {% include (info_box.html) %}
+      </div>
+   </div>
+
+
+   </div>
+   <div class="feed-sidebar col-md-3">
+   </div>
+</div>
+
+</body>
+</html>

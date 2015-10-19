@@ -209,7 +209,32 @@ form {
    display: inline-block;
 }
 
+/* accounts page styles */
+.settings-inputs {
+   display: inline-block;
+   width: 60%;
+}
+.settings-control-label {
+   width: 35%;
+   text-align: right;
+   float: left;
+   vertical-align: middle;
+   height: 34px;
+   line-height: 34px;
+   padding-right: 10px;
+}
+.settings-input-group {
+   display: block;
+}
+.settings-bg_pic {
+   width: 60%;
+}
+.public-profile-avatar {
+   display: block;
+   vertical-align: middle;
+   width: 100%;
+}
 
-
-
+/* public user page styles */
+/* ... */
 

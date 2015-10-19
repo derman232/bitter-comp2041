@@ -13,6 +13,7 @@ import sqlite3
 import time
 from Cookie import SimpleCookie
 from demplate import *
+from collections import defaultdict
 
 DB_NAME = "bitter.db"
 MAGIC_STRING = "sjdkfls243u892rjf" # for hashes
@@ -34,14 +35,8 @@ sid = ""
 if DEBUG_HEADERS:
    print headers
    print
-   print form
-   print form.getfirst("login-btn", "")
 
-siteVariables = {
-   'your_name' : 'Desmond',
-   'your_age' : 6,
-   'athlete_list' : ['john', 'jay', 'smith']
-}
+siteVariables = {}
 
 
 # connect to database
@@ -139,12 +134,14 @@ user_search = form.getfirst("user-search", "")
 if login:
    doLogin()
    page = "feed"
-elif all_search or user_search:
+elif all_search or (user_search and page == "user_search"):
    if checkSession():
-      page = "search"
+      if all_search:
+         page = "search"
    else:
-      headers = "Location: ?page=home" #if logged in redirect to feed
+      headers = "Location: ?page=home" #if not logged in, take home
       page = "home"
+   print username
 elif page == "logout":
    doLogout()
    headers = "Location: ?page=home"
@@ -153,15 +150,16 @@ elif page == "home":
    if checkSession():
       headers = "Location: ?page=feed" #if logged in redirect to feed
       page = "feed"
-elif page == "feed":
+elif page == "feed" or page == "settings":
    if not checkSession():
       headers = "Location: ?page=home" #if logged in redirect to feed
       page = "home"
+elif page == "user_page":
+   page = "user_page"
 else:
    page = "error"
 
 def matchingUsers(searchString, matches):
-   searchString = "%"+searchString+"%"
    selectString = "SELECT full_name, description, username, profile_pic, bg_pic FROM users WHERE lower(username) LIKE (?) LIMIT (?)"
    db_conn.execute(selectString, (searchString, str(matches)))
    siteVariables['matchedUsers'] = []
@@ -171,40 +169,78 @@ def matchingUsers(searchString, matches):
          curRow[key] = row[key]
       siteVariables['matchedUsers'].append(curRow)
 
-#print "hello"
-# load page variables
-#page = "feed"
-#username = "DaisyFuentes"
-if page == "feed" or page == "search":
-   # populate user's feed
-   if page == "feed":
-      listeners = (username, )
-      selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.username=?"
-      # get listeners
-      db_conn.execute('SELECT * FROM listeners WHERE username=?', (username, ))
-      for row in db_conn:
-         selectString += " OR bleats.username=?"
-         listeners = (str(row['listens']), ) + listeners
-      selectString += " ORDER BY bleats.time DESC"
-      db_conn.execute(selectString, listeners)
-   # populate search results
-   elif page == "search":
-      searchString = form.getfirst("search-txt", "")
-      siteVariables['searchString'] = searchString
-      searchString = searchString.lower().strip()
-      if user_search == "submit":
-         numMatchingUsers = 10 #TODO / TBD
-         matchingUsers(searchString, numMatchingUsers)
-         page = "user_search"
+
+# get details for target username
+def myDetails(username):
+   global siteVariables
+   db_conn.execute('SELECT * FROM users WHERE username=?', (username, ))
+   result = db_conn.fetchone()
+   siteVariables['myDetails'] = {}
+   if result:
+      for key in result.keys():
+         if key == "profile_pic":
+            siteVariables['myDetails']['avatar'] = result[key]
+         else:
+            siteVariables['myDetails'][key] = result[key]
+      if result['description']:
+         siteVariables['myDetails']['description'] = result['description']
+         siteVariables['myDetails']['view_description'] = result['description']
       else:
-         numMatchingUsers = 2
-         matchingUsers(searchString, numMatchingUsers)
-         # tweet search results
-         selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE lower(bleat) LIKE (?)"
-         searchString = "%"+searchString+"%"
-         selectString += " ORDER BY bleats.time DESC"
-         db_conn.execute(selectString, (searchString, ))
-      # user search results
+         siteVariables['myDetails']['description'] = ""
+         siteVariables['myDetails']['view_description'] = "You don't have a description :("
+   db_conn.execute('SELECT COUNT(*) FROM bleats WHERE username=?', (username, ))
+   siteVariables['myDetails']['bleats'] = db_conn.fetchone()[0]
+   db_conn.execute('SELECT COUNT(*) FROM listeners WHERE username=?', (username, ))
+   siteVariables['myDetails']['following'] = db_conn.fetchone()[0]
+   db_conn.execute('SELECT COUNT(*) FROM listeners WHERE listens=?', (username, ))
+   siteVariables['myDetails']['followers'] = db_conn.fetchone()[0]
+
+# populate logged in user's feed
+def getFeed():
+   global siteVariables
+   global username
+
+   listeners = (username, )
+   selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.username=?"
+   # get listeners
+   db_conn.execute('SELECT * FROM listeners WHERE username=?', (username, ))
+   for row in db_conn:
+      selectString += " OR bleats.username=?"
+      listeners = (str(row['listens']), ) + listeners
+   selectString += " ORDER BY bleats.time DESC"
+   db_conn.execute(selectString, listeners)
+   # after retrieving, add these to the dictionary
+   parseBleats()
+
+def getUserBleats(username):
+   global siteVariables
+
+   selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.username=?"
+   selectString += " ORDER BY bleats.time DESC"
+   db_conn.execute(selectString, (username, ))
+   # after retrieving, add these to the dictionary
+   parseBleats()
+
+
+
+def searchBleats(searchString):
+   # tweet search results
+   selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE lower(bleat) LIKE (?)"
+   selectString += " ORDER BY bleats.time DESC"
+   db_conn.execute(selectString, (searchString, ))
+   # after retrieving, add these to the dictionary
+   parseBleats()
+
+def processSearchString():
+   searchString = form.getfirst("search-txt", "")
+   siteVariables['searchString'] = searchString
+   searchString = searchString.lower().strip()
+   searchString = "%"+searchString+"%"
+   return searchString
+  
+
+def parseBleats():
+   global siteVariables
    siteVariables['myFeed'] = []
    for row in db_conn:
       curRow = {}
@@ -215,24 +251,42 @@ if page == "feed" or page == "search":
             curRow[key] = row[key]
       siteVariables['myFeed'].append(curRow)
    conn.commit()
-   # get user data
-   db_conn.execute('SELECT * FROM users WHERE username=?', (username, ))
-   result = db_conn.fetchone()
-   siteVariables['myDetails'] = {}
-   if result:
-      siteVariables['myDetails']['full_name'] = result['full_name']
-      siteVariables['myDetails']['username'] = result['username']
-      siteVariables['myDetails']['avatar'] = result['profile_pic']
-      if result['description']:
-         siteVariables['myDetails']['description'] = result['description']
-      else:
-         siteVariables['myDetails']['description'] = "You don't have a description :("
-   db_conn.execute('SELECT COUNT(*) FROM bleats WHERE username=?', (username, ))
-   siteVariables['myDetails']['bleats'] = db_conn.fetchone()[0]
-   db_conn.execute('SELECT COUNT(*) FROM listeners WHERE username=?', (username, ))
-   siteVariables['myDetails']['following'] = db_conn.fetchone()[0]
-   db_conn.execute('SELECT COUNT(*) FROM listeners WHERE listens=?', (username, ))
-   siteVariables['myDetails']['followers'] = db_conn.fetchone()[0]
+
+def validUser(username):
+   db_conn.execute('SELECT * FROM users WHERE lower(username)=?', (username.lower().strip(), ))
+   user = db_conn.fetchone()['username']
+   if user:
+      return user
+   return None
+  
+
+# handle page creation
+# populate user's feed
+if page == "feed" or page == "search" or page == "settings" or page == "user_page" or page == "user_search":
+   if page == "feed":
+      getFeed()
+      myDetails(username)
+   # populate search results
+   elif page == "search":
+      searchString = processSearchString()
+      searchBleats(searchString)
+      matchingUsers(searchString, 2)
+      myDetails(username)
+   elif page == "user_search":
+      searchString = processSearchString()
+      matchingUsers(searchString, 10)
+      #public_user = form.getfirst("public_user", "")
+      #selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.username=?"
+      #selectString += " ORDER BY bleats.time DESC"
+      #db_conn.execute(selectString, (public_user, ))
+      myDetails(username)
+   elif page == "user_page":
+      targetUser = form.getfirst("user", "")
+      targetUser = validUser(targetUser)
+      if targetUser != None:
+         myDetails(targetUser)
+         getUserBleats(targetUser)
+
 
 
 # process relevant page (#TODO if statement this so we don't have massive XSS risks)
