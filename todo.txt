@@ -1,11 +1,11 @@
 Display User Information & Bleats 
 Interface (Done)
 Logging In & Out (Done) 
-Search for Users by Username or Full Name
+Search for Users by Username or Full Name (Done)
 Sending Bleats
 Displaying Relevant Bleats (Done)
 Listening/Unlistening to Users
-Searching Bleats
+Searching Bleats (Done)
 Replying to Bleats
 Pagination of Bleats & Search Results
 Bleat respones
@@ -25,3 +25,4 @@ Bleets Attachment
    - attach video
 Advanced features
    - Encrypting passwords
+   - Location tracking?: https://developers.google.com/web/fundamentals/native-hardware/user-location/obtain-location?hl=en#when-to-use-geolocation

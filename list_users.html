@@ -1,32 +1,19 @@
+{% for row in matchedUsers %}
 <div class="profile-card col-md-6">
    <div class="panel panel-default profile-card">
-      <div class="panel-heading" style="background: url(img/default-banner.jpeg) no-repeat center; height: 100px;background-size: cover;">
+      <div class="panel-heading" style="background: url({{ row|bg_pic }}) no-repeat center; height: 100px;background-size: cover;">
       </div>
       <div class="panel-body">
          <div class="search-avatar-wrapper">
-            <img class="bleet-avatar" src="img/default-pic-small.jpg">
+            <img class="bleet-avatar" src="{{ row|profile_pic }}">
          </div>
          <div class="search-avatar-text">
-            Firstname Lastname<br><span class="grey-text">(@username)</span><br>
+            <b>{{ row|full_name }}</b><br><span class="grey-text">(@{{ row|username }})</span><br>
          </div><br>
-         <span class="grey-text small-text">Description</span><br>
-         <a href="followme"><button class="btn btn-primary follow-btn" name="follow-btn" id="follow-btn">Follow</button></a>
+         <span class="grey-text small-text">{{ row|description }}</span><br>
+         <a href="?page=followme&user={{ row|username }}"><button class="btn btn-primary follow-btn" name="follow-btn" id="follow-btn">Listen</button></a>
       </div>
    </div>
 </div>
-<div class="profile-card col-md-6">
-   <div class="panel panel-default profile-card">
-      <div class="panel-heading" style="background: url(img/default-banner.jpeg) no-repeat center; height: 100px;background-size: cover;">
-      </div>
-      <div class="panel-body">
-         <div class="search-avatar-wrapper">
-            <img class="bleet-avatar" src="img/default-pic-small.jpg">
-         </div>
-         <div class="search-avatar-text">
-            Firstname Lastname<br><span class="grey-text">(@username)</span><br>
-         </div>
-         <span class="grey-text small-text">Description</span><br>
-         <a href="followme"><button class="btn btn-primary follow-btn" name="follow-btn" id="follow-btn">Follow</button></a>
-      </div>
-   </div>
-</div>
+{% endfor %}
+

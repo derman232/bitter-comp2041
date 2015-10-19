@@ -9,7 +9,7 @@
          <div class="search-avatar-text">
             <b>{{ myDetails|full_name }}</b><br><span class="grey-text small-text">(@{{ myDetails|username }})</span><br>
          </div><br><span class="small-text">
-         You don't have a description :(<br>
+         {{ myDetails|description }}<br>
 <b>Your Bleats</b>: {{ myDetails|bleats }}<br>
 <b>Following</b>: {{ myDetails|following }}<br>
 <b>Followers</b>: {{ myDetails|followers }}<br>

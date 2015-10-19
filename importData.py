@@ -22,6 +22,7 @@ else:
    USER_DIR    = "/Users/derek/Sites/bitter/dataset-small/users/"
    BLEAT_DIR   = "/Users/derek/Sites/bitter/dataset-small/bleats/"
    DEFAULT_PIC = "https://www.gravatar.com/avatar/d489b737cd6a6074c634ebfbb2a39396.jpg"
+   DEFAULT_BG  = "http://localhost/~derek/bitter/img/default-banner.jpeg"
    PROFILE_DIR = "http://www.cse.unsw.edu.au/~cs2041/15s2/assignments/bitter/dataset-small/users/"
 
 
@@ -34,7 +35,9 @@ def createTables():
    home_latitude   REAL,
    home_suburb     TEXT,
    profile_pic     TEXT,
-   home_longitude  REAL )''')
+   home_longitude  REAL,
+   description     TEXT,
+   bg_pic          TEXT )''')
    c.execute('''CREATE TABLE listeners (
    username        TEXT,
    listens         TEXT )''')
@@ -131,9 +134,11 @@ for a in glob.glob(USER_DIR+"*"):
       userDict['home_latitude'] ,
       userDict['home_suburb']   ,
       profile_pic               ,
-      userDict['home_longitude']
+      userDict['home_longitude'],
+      ''                        , #empty description
+      DEFAULT_BG   # default backgorund pic
    )
-   c.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?)", values)
+   c.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
 
    for line in userDict['listens'].split():
       values = (

@@ -133,12 +133,13 @@ def convertTime(targetTime):
 
 login = form.getfirst("login-btn", "")
 if DEBUG == True: login = "yes"
-search = form.getfirst("main-search", "")
+all_search = form.getfirst("main-search", "")
+user_search = form.getfirst("user-search", "")
 
 if login:
    doLogin()
    page = "feed"
-elif search:
+elif all_search or user_search:
    if checkSession():
       page = "search"
    else:
@@ -159,6 +160,17 @@ elif page == "feed":
 else:
    page = "error"
 
+def matchingUsers(searchString, matches):
+   searchString = "%"+searchString+"%"
+   selectString = "SELECT full_name, description, username, profile_pic, bg_pic FROM users WHERE lower(username) LIKE (?) LIMIT (?)"
+   db_conn.execute(selectString, (searchString, str(matches)))
+   siteVariables['matchedUsers'] = []
+   for row in db_conn:
+      curRow = {}
+      for key in row.keys():
+         curRow[key] = row[key]
+      siteVariables['matchedUsers'].append(curRow)
+
 #print "hello"
 # load page variables
 #page = "feed"
@@ -177,12 +189,22 @@ if page == "feed" or page == "search":
       db_conn.execute(selectString, listeners)
    # populate search results
    elif page == "search":
-      # tweet search results
-      selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE lower(bleat) LIKE (?)"
-      searchString = form.getfirst("search-txt", "").lower()
-      searchString = "%"+searchString+"%"
-      selectString += " ORDER BY bleats.time DESC"
-      db_conn.execute(selectString, (searchString, ))
+      searchString = form.getfirst("search-txt", "")
+      siteVariables['searchString'] = searchString
+      searchString = searchString.lower().strip()
+      if user_search == "submit":
+         numMatchingUsers = 10 #TODO / TBD
+         matchingUsers(searchString, numMatchingUsers)
+         page = "user_search"
+      else:
+         numMatchingUsers = 2
+         matchingUsers(searchString, numMatchingUsers)
+         # tweet search results
+         selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE lower(bleat) LIKE (?)"
+         searchString = "%"+searchString+"%"
+         selectString += " ORDER BY bleats.time DESC"
+         db_conn.execute(selectString, (searchString, ))
+      # user search results
    siteVariables['myFeed'] = []
    for row in db_conn:
       curRow = {}
@@ -201,6 +223,10 @@ if page == "feed" or page == "search":
       siteVariables['myDetails']['full_name'] = result['full_name']
       siteVariables['myDetails']['username'] = result['username']
       siteVariables['myDetails']['avatar'] = result['profile_pic']
+      if result['description']:
+         siteVariables['myDetails']['description'] = result['description']
+      else:
+         siteVariables['myDetails']['description'] = "You don't have a description :("
    db_conn.execute('SELECT COUNT(*) FROM bleats WHERE username=?', (username, ))
    siteVariables['myDetails']['bleats'] = db_conn.fetchone()[0]
    db_conn.execute('SELECT COUNT(*) FROM listeners WHERE username=?', (username, ))
@@ -229,3 +255,4 @@ print search
 search = form.getfirst("search-txt", "")
 print search
 
+print siteVariables

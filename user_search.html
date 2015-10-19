@@ -22,26 +22,14 @@
          </div>
       </div>
    </div>
-   <div class="feed-tweets col-md-6">
+   <div class="feed-tweets col-md-9">
       <div class="panel panel-default suggestions-panel">
          <div class="panel-heading">
             <h3 class="panel-title">Users which match your results
-            <a href="?search-txt={{ searchString }}&user-search=submit"><button class="btn btn-primary users-search-btn" name="users-search-btn" id="users-search-btn" value="submit">View All</button></h3></a>
          </div>
          <div class="panel-body">
             {% include (list_users.html) %}
          </div>
-      </div>
-      <div class="panel panel-default tweets-panel">
-         <div class="panel-heading">
-            <h3 class="panel-title">Matching tweets
-         </div>
-         {% include (list_tweets.html) %}
-      </div>
-   </div>
-   <div class="feed-trends col-md-3">
-      <div class="panel panel-default trends-panel">
-         {% include (info_box.html) %}
       </div>
    </div>
 
