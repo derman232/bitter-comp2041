@@ -15,9 +15,19 @@ $('document').ready(function(){
          $(".tweet-submit").hide();
       }
    });
+
+   // tweet box counter
    $('textarea#new-tweet').bind('input propertychange', function() {
       $(".char-count").html(140 - $("textarea#new-tweet").val().length);
    });
+
+   // link for individual tweets
+   $('.tweet-body-selector').on("click", ":not(a img)", function() {
+      $(this).find('#bleat_id').each(function(){
+         window.location = "http://google.com/?gws_rd=ssl#q=" + $(this).val();
+      });
+   });
+
 });
 
 

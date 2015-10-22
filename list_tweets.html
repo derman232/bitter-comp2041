@@ -1,12 +1,15 @@
 <div class="tweet-collection">
    {% for row in myFeed %}
-   <div class="panel-body tweet-body row">
-      <div class="bleet-avatar-wrapper">
-         <img class="bleet-avatar" src="{{ row|profile_pic }}">
-      </div>
-      <div class="bleet-text">
-         <a href="?page=user_page&user={{ row|username }}"><b>{{ row|full_name }}</b></a> <span class="grey-text">@{{ row|username }} | {{ row|time }}</span><br>
-         {{ row|bleat }}
+   <div class="tweet-body-selector">
+      <div class="panel-body tweet-body row">
+         <div class="bleet-avatar-wrapper">
+            <img class="bleet-avatar" src="{{ row|profile_pic }}">
+         </div>
+         <div class="bleet-text">
+            <a href="?page=user_page&user={{ row|username }}"><b>{{ row|full_name }}</b></a> <span class="grey-text">@{{ row|username }} | {{ row|time }}</span><br>
+            <input type="hidden" name="bleat_id" id="bleat_id" value="{{ row|bleat_id }}">
+            {{ row|bleat }}
+         </div>
       </div>
    </div>
    {% endfor %}
