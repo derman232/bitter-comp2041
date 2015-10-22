@@ -253,7 +253,10 @@ def parseBleats():
 
 def validUser(username):
    db_conn.execute('SELECT * FROM users WHERE lower(username)=?', (username.lower().strip(), ))
-   user = db_conn.fetchone()['username']
+   try:
+      user = db_conn.fetchone()['username']
+   except:
+      user = None
    if user:
       return user
    return None
@@ -285,6 +288,8 @@ if page == "feed" or page == "search" or page == "settings" or page == "user_pag
       if targetUser != None:
          myDetails(targetUser)
          getUserBleats(targetUser)
+      else:
+         headers = "Location: ?page=feed"
 
 
 
