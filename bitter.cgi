@@ -141,7 +141,6 @@ elif all_search or (user_search and page == "user_search"):
    else:
       headers = "Location: ?page=home" #if not logged in, take home
       page = "home"
-   print username
 elif page == "logout":
    doLogout()
    headers = "Location: ?page=home"
