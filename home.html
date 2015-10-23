@@ -6,12 +6,7 @@
 <script src="js/scripts.js"></script>
 <body class="hp-background">
 
-
-<nav class="navbar navbar-default navbar-fixed-top default-pos">
-   <div class="container">
-      <div class="header-icon"></div>
-   </div>
-</nav>
+{% include (loggedout_header.html) %}
 
 <div class="front-block-wrapper">
 <div class="front-block row">
@@ -35,13 +30,12 @@
       <div class="spacer"></div>
       <div class="signup-box">
          <h4><b>New to Bitter?</b> Sign up</h4>
-         <form method="post">
+         <form method="post" action="?page=sign_up">
             <div class="input-group">
-              <input type="text" class="form-control" name="fullname" id="fullname" placeholder="Full name">
-              <input type="text" class="form-control" name="username" id="username" placeholder="Username">
+              <input type="text" class="form-control" name="full_name" id="full_name" placeholder="Full name">
+              <input type="text" class="form-control" name="new_user" id="new_user" placeholder="Username">
               <input type="text" class="form-control" name="email" id="email" placeholder="Email">
-              <input type="password" class="form-control" name="password" id="password" placeholder="Password">
-              <button class="btn btn-info" id="signup-btn">Sign up for Bitter</button>
+              <button class="btn btn-info" id="sign_up-btn" name="sign_up-btn" value="submit">Sign up for Bitter</button>
             </div>
          </form>
       </div>

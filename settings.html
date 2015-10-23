@@ -4,6 +4,9 @@
 <link rel="stylesheet" type="text/css" href="css/styles.css">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 <script src="js/scripts.js"></script>
+<script src="js/maps.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBLtOAK5mkzR8Kuu3zWokYW5mDSwZHChTw&libraries=places&callback=initAutocomplete" async defer></script>
+
 <body class="clear-background">
 
 {% include (loggedin_header.html) %}
@@ -30,18 +33,43 @@
          </div>
          {# include max-length things #}
          <div class="panel-body">
-            <label for="username" class="settings-control-label">Username</label><input id="username" class="form-control settings-inputs" name="username" type="text" value="{{ myDetails|username }}"><br><br>
-            <label for="password" class="settings-control-label">Password</label><input id="password" class="form-control settings-inputs" name="password" type="password" value="" placeholder="Enter a new password"><br><br>
-            <label for="full_name" class="settings-control-label">Your name</label><input id="full_name" class="form-control settings-inputs" name="full_name" type="text" value="{{ myDetails|full_name }}"><br><br>
-            <label for="description" class="settings-control-label">Description</label><textarea id="description" rows="4" class="form-control settings-inputs" name="description" type="text" value="" placeholder="Type in a few words aboot yourself">{{ myDetails|description }}</textarea><br><br>
-            <label for="email" class="settings-control-label">Email</label><input id="email" class="form-control settings-inputs" name="email" type="text" value="{{ myDetails|email }}"><br><br>
-            <label for="location" class="settings-control-label">Location</label><input id="location" class="form-control settings-inputs" name="location" type="text" value="{{ myDetails|home_suburb }}"><br><br>
-            <label for="profile_pic" class="settings-control-label">Profile Picture</label>
-               <img class="settings-avatar" src="{{ myDetails|avatar }}">
-               <input id="profile_pic" class="form-control settings-inputs" name="profile_pic" type="hidden" value=""><br><br>
-            <label for="bg_pic" class="settings-control-label">Background Picture</label>
-               <img class="settings-bg_pic" src="{{ myDetails|bg_pic }}">
-               <input id="bg_pic" class="form-control settings-inputs" name="bg_pic" type="hidden" value=""><br><br>
+            <form method="post" id="settings-form" enctype="multipart/form-data" autocomplete="off">
+               <input id="new_user" class="form-control settings-inputs" name="new_user" type="hidden" value="{{ myDetails|username }}">
+               <label for="full_name" class="settings-control-label">Your name</label><input id="full_name" class="form-control settings-inputs" name="full_name" type="text" value="{{ myDetails|full_name }}">
+               {{ errorMsgs|full_name }}
+               <br><br>
+               <label for="new_pass" class="settings-control-label">Password</label><input id="new_pass" class="form-control settings-inputs" name="new_pass" type="password" value="" placeholder="Enter a new password">
+               {{ errorMsgs|password }}
+               <br><br>
+               <label for="description" class="settings-control-label">Description</label><textarea id="description" rows="4" class="form-control settings-inputs" name="description" type="text" value="" placeholder="Type in a few words about yourself">{{ myDetails|description }}</textarea>
+               {{ errorMsgs|description }}
+               <br><br>
+               <label for="email" class="settings-control-label">Email</label><input id="email" class="form-control settings-inputs" name="email" type="text" value="{{ myDetails|email }}">
+               {{ errorMsgs|email }}
+               <br><br>
+               <label for="profile_pic" class="settings-control-label">Profile Picture</label>
+                  <img class="settings-avatar" src="{{ myDetails|avatar }}"><br><br>
+                  <label for="profile_pic" class="settings-control-label"></label><input id="profile_pic" class="form-control settings-inputs" name="profile_pic" type="file" value="">
+               {{ errorMsgs|profile_pic }}<br><br>
+
+               <label for="bg_pic" class="settings-control-label">Background Picture</label>
+                  <img class="settings-bg_pic" src="{{ myDetails|bg_pic }}"><br><br>
+                  <label for="bg_pic" class="settings-control-label"></label><input id="bg_pic" class="form-control settings-inputs" name="bg_pic" type="file" value="">
+               {{ errorMsgs|bg_pic }}
+
+               <input id="home_location" class="form-control settings-inputs" name="home_location" type="search" value="{{ myDetails|home_suburb }}" style="margin-top: 10px; height: 30px;" placeholder="Enter your suburb" autocomplete="off"><br><br>
+
+               <label for="location" class="settings-control-label" autocomplete="off">Home Location</label>
+               <div id="map" style="height: 250px"></div>
+               <input type="hidden" name="home_lat" id="home_lat" value="{{ myDetails|home_latitude }}">
+               <input type="hidden" name="home_long" id="home_long" value="{{ myDetails|home_longitude }}">
+               <br>
+               {{ errorMsgs|location }}
+
+               <button class="btn btn-primary sign_up-btn" name="settings-btn" id="settings-btn" value="submit">Update Settings</button>
+            </form>
+
+
          </div>
       </div>
    </div>

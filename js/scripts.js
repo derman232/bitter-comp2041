@@ -28,6 +28,15 @@ $('document').ready(function(){
       });
    });
 
+   // override enter key on maps search box
+   $('#home_location').keydown(function(event) {
+      if (event.keyCode == 13) {
+         event.preventDefault();
+      }
+   });
+
+
+
 });
 
 

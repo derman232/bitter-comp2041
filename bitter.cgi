@@ -11,14 +11,23 @@ import cgi
 import sys
 import sqlite3
 import time
+import re
 from Cookie import SimpleCookie
 from demplate import *
 from collections import defaultdict
 
 DB_NAME = "bitter.db"
 MAGIC_STRING = "sjdkfls243u892rjf" # for hashes
+MAX_FILE_SIZE = 1024*1024*2 # 2 megabytes in bytes
+MAX_FILE_SIZE_STR = "2MB" # 2 megabytes in bytes
+MAX_DESC_LEN = 100
 DEBUG = False
 DEBUG_HEADERS = False
+DEFAULT_PIC = "https://www.gravatar.com/avatar/d489b737cd6a6074c634ebfbb2a39396.jpg"
+DEFAULT_BG  = "http://localhost/~derek/bitter/img/default-banner.jpeg"
+VALID_MIME_IMAGES = ["image/jpeg", "image/png"]
+VALID_FILE_EXTS   = ["jpg", "jpeg", "png"]
+UPLOAD_DIR = "userimg/"
 
 # get params
 form = cgi.FieldStorage()
@@ -77,7 +86,7 @@ def createSession(username):
    page = "feed"   #open user's feed on login
    sid = generateHash()
    cookies['sid'] = sid
-   db_conn.execute("INSERT INTO sessions VALUES (?, ?)", (username, sid));
+   db_conn.execute("INSERT INTO sessions VALUES (?, ?)", (username, sid))
    conn.commit()
 
 def generateHash():
@@ -126,37 +135,6 @@ def convertTime(targetTime):
    convertedTime = time.strftime('%m/%d/%Y %H:%M:%S',  time.gmtime(targetTime))
    return convertedTime
 
-login = form.getfirst("login-btn", "")
-if DEBUG == True: login = "yes"
-all_search = form.getfirst("main-search", "")
-user_search = form.getfirst("user-search", "")
-
-if login:
-   doLogin()
-   page = "feed"
-elif all_search or (user_search and page == "user_search"):
-   if checkSession():
-      if all_search:
-         page = "search"
-   else:
-      headers = "Location: ?page=home" #if not logged in, take home
-      page = "home"
-elif page == "logout":
-   doLogout()
-   headers = "Location: ?page=home"
-   page = "home"
-elif page == "home":
-   if checkSession():
-      headers = "Location: ?page=feed" #if logged in redirect to feed
-      page = "feed"
-elif page == "feed" or page == "settings":
-   if not checkSession():
-      headers = "Location: ?page=home" #if logged in redirect to feed
-      page = "home"
-elif page == "user_page":
-   page = "user_page"
-else:
-   page = "error"
 
 def matchingUsers(searchString, matches):
    selectString = "SELECT full_name, description, username, profile_pic, bg_pic FROM users WHERE lower(username) LIKE (?) LIMIT (?)"
@@ -181,12 +159,15 @@ def myDetails(username):
             siteVariables['myDetails']['avatar'] = result[key]
          else:
             siteVariables['myDetails'][key] = result[key]
+
+      # if description is not empty, replace with dummy text
       if result['description']:
          siteVariables['myDetails']['description'] = result['description']
          siteVariables['myDetails']['view_description'] = result['description']
       else:
          siteVariables['myDetails']['description'] = ""
          siteVariables['myDetails']['view_description'] = "You don't have a description :("
+
    db_conn.execute('SELECT COUNT(*) FROM bleats WHERE username=?', (username, ))
    siteVariables['myDetails']['bleats'] = db_conn.fetchone()[0]
    db_conn.execute('SELECT COUNT(*) FROM listeners WHERE username=?', (username, ))
@@ -261,13 +242,362 @@ def validUser(username):
       return user
    return None
   
+def existingEmail(email):
+   db_conn.execute('SELECT * FROM users WHERE lower(email)=?', (email.lower().strip(), ))
+   try:
+      email = db_conn.fetchone()['email']
+   except:
+      email = None
+   if email:
+      return email
+   return None
 
-# handle page creation
-# populate user's feed
-if page == "feed" or page == "search" or page == "settings" or page == "user_page" or page == "user_search":
-   if page == "feed":
+def isNumber(n):
+   try:
+      float(n)
+      return True
+   except ValueError:
+      return False
+
+def validUsername(username):
+   return bool(re.match(r'^[a-zA-Z0-9_]{1,15}$', username))
+
+#at least one digit, one uppercase, one lowercase, and can contain special characters !@#$%_^&*
+def validPassword(password):
+   return bool(re.match(r'^(?=.*[\d])(?=.*[A-Z])(?=.*[a-z])[\w\d!@#$%_\^\&\*]{6,40}$', password))
+
+def validEmail(email):
+   # to avoid a philosphical debate on this stuff... 
+   # http://stackoverflow.com/questions/201323/using-a-regular-expression-to-validate-an-email-address
+   return bool(re.match(r'[^@]+@[^@]+\.[^@]+', email))
+
+
+def getNewUserFormFields ():
+   global siteVariables
+   formFields = {
+      'new_user' : form.getfirst("new_user", ""),
+      'new_pass' : form.getfirst("new_pass", ""),
+      'full_name' : form.getfirst("full_name", ""),
+      'description' : form.getfirst("description", ""),
+      'email' : form.getfirst("email", ""),
+      'location' : form.getfirst("location", ""),
+      'profile_pic' : form.getfirst("profile_pic", ""),
+      'bg_pic' : form.getfirst("bg_pic", ""),
+      'home_location' : form.getfirst("home_location", ""),
+      'home_lat' : form.getfirst("home_lat", ""),
+      'home_long' : form.getfirst("home_long", "")
+   }
+   try:
+      formFields['profile_pic'] = form['profile_pic']
+   except:
+      pass
+   try:
+      formFields['bg_pic'] = form['bg_pic']
+   except:
+      pass
+
+   siteVariables['formFields'] = formFields
+   return formFields
+
+def checkImage(curPic):
+   errorMsg = ''
+   valid = True
+   try:
+      if curPic.filename:
+         # check if file is right type
+         extension = curPic.filename.rsplit('.', 1)[-1]
+         if curPic.type not in VALID_MIME_IMAGES:
+            valid = False
+            errorMsg = 'Enter a valid filetype. (.jpeg, .jpg, .png)'
+         elif extension not in VALID_FILE_EXTS:
+            valid = False
+            errorMsg = 'Enter a valid filetype. (.jpeg, .jpg, .png)'
+         return valid, errorMsg
+
+         # check if file is too big
+         fileSize = len(curPic.value)
+         if fileSize > MAX_FILE_SIZE:
+            valid = False
+            errorMsg = 'Profile picture cannot be larger than '+MAX_FILE_SIZE_STR
+            return valid, errorMsg
+   except AttributeError:
+      pass
+   return valid, errorMsg
+
+# validates new user form, and settings form
+def processNewUserForm (formFields, settings=False, emptyErrors=False):
+   global siteVariables
+   valid = True
+   errorMsgs = {
+      'username' : '',
+      'password' : '',
+      'full_name' : '',
+      'description' :'',
+      'email' : '',
+      'location' : '',
+      'profile_pic' : '',
+      'bg_pic' : '',
+      'home_location' : ''
+   }
+
+   # if empty errors list required, return here
+   if emptyErrors:
+      siteVariables['errorMsgs'] = errorMsgs
+      valid = False
+      return valid
+   new_user  = formFields['new_user']
+   new_pass  = formFields['new_pass']
+   full_name = formFields['full_name']
+   email     = formFields['email']
+   profile_pic = formFields['profile_pic']
+   bg_pic = formFields['bg_pic']
+   home_lat  = formFields['home_lat']
+   home_long = formFields['home_long']
+   description = formFields['description']
+
+   # check that required fields are complete if not settings form
+   if not settings:
+      if not new_user:
+         valid = False
+         errorMsgs['username'] = 'Enter a username'
+      if not new_pass:
+         valid = False
+         errorMsgs['password'] = 'Enter a password'
+      if not full_name:
+         valid = False
+         errorMsgs['full_name'] = 'Enter your name'
+      if not email:
+         valid = False
+         errorMsgs['email'] = 'Enter your email address'
+   # check description length
+   if len(description) > MAX_DESC_LEN:
+      valid = False
+      errorMsgs['description'] = 'Descriptions cannot be longer than 100 characters'
+   # check if username is valid
+   if not errorMsgs['username'] and not settings:
+      if not validUsername(new_user):
+         valid = False
+         errorMsgs['username'] = 'Username must not be longer than 15 characters, and can only contain [A-Za-z0-9_]'
+   # check if username is taken
+   if not errorMsgs['username'] and not settings:
+      if validUser(new_user):
+         valid = False
+         errorMsgs['username'] = 'This username is already taken. Please try another one'
+   # check if password is valid
+   if not errorMsgs['password'] and new_pass:
+      if not validPassword(new_pass):
+         valid = False
+         errorMsgs['password'] = 'Password must contain at least one digit, one uppercase, and one lowercase letter and be 6-40 characters long. Can include special characters !@#$%_^&*'
+   # check if email address is valid
+   if not errorMsgs['email'] and email:
+      if not validEmail(email):
+         valid = False
+         errorMsgs['email'] = 'Please enter a valid email address'
+   if not errorMsgs['email'] and email:
+      if existingEmail(email):
+         errorMsgs['email'] = 'Email address already registered. <a href="?page=forgot">Reset your password?</a>'
+         if settings:
+            if email == siteVariables['myDetails']['email']:
+               vaild = True
+               errorMsgs['email'] = ''
+   # check image file things
+   imgValid, errorMsgs['profile_pic'] = checkImage(profile_pic)
+   if valid:
+      valid = imgValid
+   imgValid, errorMsgs['bg_pic'] = checkImage(bg_pic)
+   if valid:
+      valid = imgValid
+
+
+   # check that both coordinates are present
+   if (home_lat and not home_long) or (home_long and not home_lat):
+      valid = False
+      errorMsgs['home_location'] = 'Weird things man. Try again'
+   # check that both coords are numbers
+   if (home_lat and home_long):
+      if (not isNumber(home_lat)) or (not isNumber(home_long)):
+         valid = False
+         errorMsgs['home_location'] = 'Weird things man. Try again'
+
+   # add HTML nonsense to error messages
+   error_start = '<br><span class="sign_up-error">'
+   error_end   = '</span>'
+   for key in errorMsgs:
+      if errorMsgs[key]:
+         errorMsgs[key] = error_start + errorMsgs[key] + error_end
+
+   # add to siteVars and return
+   siteVariables['errorMsgs'] = errorMsgs
+   return valid
+
+def uploadFile(curFile, fileStyle, username):
+   extension = curFile.filename.rsplit('.', 1)[-1]
+   if fileStyle == "profile":
+      filename = username+"-dp."+extension
+   if fileStyle == "background":
+      filename = username+"-bg."+extension
+   # if we couldn't upload for some reason, fail silently..
+   filename = UPLOAD_DIR + filename
+   try:
+      open(filename, 'wb').write(curFile.file.read())
+   except:
+      return DEFAULT_PIC
+   return filename
+
+def addNewUser(formFields):
+   # hash password
+   formFields['new_pass'] = hashlib.md5(formFields['new_pass']).hexdigest() #hash password
+
+   # set profile pic
+   profile_pic = DEFAULT_PIC
+   bg_pic = DEFAULT_BG
+   try:
+      if formFields['profile_pic'].filename:
+         profile_pic = uploadFile(formFields['profile_pic'], "profile", formFields['new_user'])
+   except:
+      pass
+   # set background pic
+   try:
+      if formFields['bg_pic'].filename:
+         bg_pic = uploadFile(formFields['bg_pic'], "profile", formFields['new_user'])
+   except:
+      pass
+
+   values = (
+      formFields['email']         ,
+      formFields['full_name']     ,
+      formFields['new_pass']      ,
+      formFields['new_user']      ,
+      formFields['home_lat']      ,
+      formFields['home_location'] ,
+      profile_pic                 ,
+      formFields['home_long']     ,
+      formFields['description']   ,
+      bg_pic       # default backgorund pic
+   )
+   db_conn.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
+   conn.commit()
+
+def updateNewUser(formFields):
+   global username
+   toUpdate = defaultdict(str)
+   for key in formFields.keys():
+      if key == 'profile_pic':
+         # set profile pic
+         try:
+            if formFields['profile_pic'].filename:
+               profile_pic = uploadFile(formFields['profile_pic'], "profile", formFields['new_user'])
+               toUpdate['profile_pic'] = profile_pic
+         except:
+            pass
+      elif key == 'bg_pic':
+         # set background pic
+         try:
+            if formFields['bg_pic'].filename:
+               bg_pic = uploadFile(formFields['bg_pic'], "profile", formFields['new_user'])
+               toUpdate['bg_pic'] = bg_pic
+         except:
+            pass
+      elif formFields[key]:
+         if key == 'home_lat':
+            toUpdate['home_latitude'] = formFields[key]
+         elif key == 'home_long':
+            toUpdate['home_longitude'] = formFields[key]
+         elif key == 'home_location':
+            toUpdate['home_suburb'] = formFields[key]
+         elif key == 'new_pass':
+            formFields['new_pass'] = hashlib.md5(formFields['new_pass']).hexdigest() #hash password
+            toUpdate['password'] = formFields['new_pass']
+         elif key == 'new_user': # skip username, as we can't change it
+            continue
+         else:
+            toUpdate[key] = formFields[key]
+      elif key == 'description': # description can be empty
+         toUpdate['description'] = formFields['description']
+
+
+   updateStr = ''
+   updateGroup = ()
+   for key in toUpdate:
+      updateStr = updateStr + key + " = (?), "
+      updateGroup = updateGroup + (toUpdate[key], )
+   updateStr = "SET " + updateStr[:-2]
+   updateStr = "UPDATE users " + updateStr + "WHERE username=(?)"
+   updateGroup = updateGroup + (username, )
+
+   db_conn.execute(updateStr, updateGroup)
+   conn.commit()
+
+
+
+# manage page selection (and some form submission checking...)
+login = form.getfirst("login-btn", "")
+if DEBUG == True: login = "yes"
+all_search = form.getfirst("main-search", "")
+user_search = form.getfirst("user-search", "")
+sign_up = form.getfirst("sign_up-btn", "")
+update_settings = form.getfirst("settings-btn", "")
+
+if login:
+   doLogin()
+   page = "feed"
+elif all_search or (user_search and page == "user_search"):
+   if checkSession():
+      if all_search:
+         page = "search"
+   else:
+      headers = "Location: ?page=home" #if not logged in, take home
+      page = "home"
+elif page == "logout":
+   doLogout()
+   headers = "Location: ?page=home"
+   page = "home"
+elif page == "home":
+   if checkSession():
+      headers = "Location: ?page=feed" #if logged in redirect to feed
+      page = "feed"
+elif page == "feed" or (page == "settings" or update_settings):
+   if not checkSession():
+      headers = "Location: ?page=home" #if logged in redirect to feed
+      page = "home"
+elif page == "user_page":
+   page = "user_page"
+elif page == "sign_up" or sign_up:
+   if checkSession():
+      headers = "Location: ?page=feed" #if logged in redirect to feed
+      page = "feed"
+   else:
+      page = "sign_up"
+else:
+   page = "error"
+
+
+
+# handle page creation, feed population etc.
+if page != "error":
+   if page == "feed" or page == "settings":
       getFeed()
       myDetails(username)
+      if page == "settings":
+         formFields = getNewUserFormFields()
+         if update_settings:
+            validForm = processNewUserForm(formFields, True)
+            if validForm:
+               updateNewUser(formFields)
+               myDetails(username) # re-populate myDetails to reflect updated details
+         else:
+            processNewUserForm(formFields, False, True) #get empty errorMsgs dict
+
+   elif page == "sign_up":
+      formFields = getNewUserFormFields()
+      if sign_up:
+         validForm = processNewUserForm(formFields)
+         if validForm:
+            addNewUser(formFields)
+            headers = "Location: ?page=home"
+      else:
+         processNewUserForm(formFields) #get empty errorMsgs dict
+
    # populate search results
    elif page == "search":
       searchString = processSearchString()
@@ -293,7 +623,7 @@ if page == "feed" or page == "search" or page == "settings" or page == "user_pag
 
 
 
-# process relevant page (#TODO if statement this so we don't have massive XSS risks)
+# process relevant page
 filename = page+".html"
 site = open(filename, "r").read()
 parser = ParseSite(site)

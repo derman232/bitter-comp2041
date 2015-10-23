@@ -1,4 +1,11 @@
-Display User Information & Bleats 
+Account creation
+Profile text
+Password recovery
+Uploading & Deleting Background + Profile Pics
+Editing Information
+========== Mostly done
+
+Display User Information & Bleats (Done)
 Interface (Done)
 Logging In & Out (Done) 
 Search for Users by Username or Full Name (Done)
@@ -7,13 +14,8 @@ Displaying Relevant Bleats (Done)
 Listening/Unlistening to Users
 Searching Bleats (Done)
 Replying to Bleats
-Pagination of Bleats & Search Results
+   Pagination of Bleats & Search Results
 Bleat respones
-Account creation
-Profile text
-Password recovery
-Uploading & Deleting Background + Profile Pics
-Editing Information
 Deleting Bleats
 Suspending/Deleting Bitter Account
 Email notifications
@@ -24,5 +26,8 @@ Bleets Attachment
    - attach images
    - attach video
 Advanced features
-   - Encrypting passwords
+   - Encrypting passwords (Done)
    - Location tracking?: https://developers.google.com/web/fundamentals/native-hardware/user-location/obtain-location?hl=en#when-to-use-geolocation
+
+THINGS
+   - cannot NOT set a location
