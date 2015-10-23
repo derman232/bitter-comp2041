@@ -210,6 +210,14 @@ class IfNode:
    #def addBody(body):
    #   self.body = body
    def evaluate(self, values):
+      evalStr = self.expr.split(' ')
+      # a bit of terrible variable processing mixed in here..
+      for var in xrange(len(evalStr)):
+         if '|' in evalStr[var]:
+            tempStr = evalStr[var].split('|', 1)
+            tempStr = "%s['%s']" % (tempStr[0], tempStr[1])
+            evalStr[var] = tempStr
+      self.expr = ' '.join(evalStr)
       return eval(self.expr, values)
    def convert(self, values):
       return self.body.convert(values)
@@ -224,8 +232,6 @@ class ForNode:
       #for node in self.body:
       #   self.converted += node.convert()
       converted = ""
-      # use a dictionary fool !
-      # http://stackoverflow.com/a/5599313/1813955
       for tempVar in eval(self.cond, values):
          #exec(self.variable + " = " + tempVar, locals())
          values[self.variable] = tempVar
