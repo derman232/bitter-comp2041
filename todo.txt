@@ -19,9 +19,9 @@ Displaying Relevant Bleats (Done)
 Listening/Unlistening to Users (Done)
 Searching Bleats (Done)
 
-Replying to Bleats
+Replying to Bleats (Done)
    Pagination of Bleats & Search Results
-Bleat respones
+Bleat respones (Go one level up, then simply link)
 Deleting Bleats
 Suspending/Deleting Bitter Account
 

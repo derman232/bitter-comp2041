@@ -686,7 +686,7 @@ elif page == "home":
    if checkSession():
       headers = "Location: ?page=feed" #if logged in redirect to feed
       page = "feed"
-elif page == "feed" or (page == "settings" or update_settings) or page == "followme" or page == "unlisten" or new_tweet:
+elif page == "feed" or (page == "settings" or update_settings) or page == "followme" or page == "unlisten" or new_tweet or page == "delete":
    if not checkSession():
       headers = "Location: ?page=home" #if not logged in redirect home
       page = "home"
@@ -880,13 +880,21 @@ def insertTweet(formFields):
          if validUser(user, True):
             db_conn.execute("INSERT INTO reply_to VALUES (?, ?)", (bleat_id, user));
 
+def deleteBleat(bleat_id):
+   db_conn.execute('SELECT * FROM bleats WHERE bleat_id=(?)', (bleat_id, ))
+   files = db_conn.fetchone()['files']
+   #TODO clear 'in_reply_to'
+   #TODO delete images
+   db_conn.execute('DELETE FROM bleats WHERE bleat_id=?', (bleat_id, ))
+   conn.commit()
+
 
 # handle page creation, feed population etc.
 if page != "error":
    siteVariables['message'] = False
    siteVariables['message_txt'] = ''
 
-   if page == "feed" or page == "settings" or page == "followme" or page == "unlisten":
+   if page == "feed" or page == "settings" or page == "followme" or page == "unlisten" or page == "delete":
       getFeed()
       myDetails(username)
       if page == "settings":
@@ -919,6 +927,15 @@ if page != "error":
          else:
             headers = "Location: ?page=feed&msg_type=1&msg=True&user=" + follow_user
             page = "feed"
+      elif page == "delete":
+         targetBleat = form.getfirst("bleat_id", "")
+         targetBleat = validBleat(targetBleat)
+         if targetBleat != None:
+            targetUser = bleatToUser(targetBleat)
+            if targetUser == username:
+               deleteBleat(targetBleat)
+               headers = "Location: ?page=feed&msg_type=4&msg=True"
+         page = "feed"
       elif bool(msg):
          follow_user = form.getfirst("user", "")
          if follow_user:
@@ -931,6 +948,8 @@ if page != "error":
                myMsg = "You are now listening to " + follow_user
             elif (msgType == '3'):
                myMsg = "You are no longer listening to " + follow_user
+            elif (msgType == '4'):
+               myMsg = "Bleat successfully deleted"
             else:
                siteVariables['message'] = False
             siteVariables['message_txt'] = myMsg
