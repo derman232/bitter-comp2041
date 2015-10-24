@@ -24,7 +24,7 @@ $('document').ready(function(){
    // link for individual tweets
    $('.tweet-body-selector').on("click", ":not(a img)", function() {
       $(this).find('#bleat_id').each(function(){
-         window.location = "http://google.com/?gws_rd=ssl#q=" + $(this).val();
+         window.location.href = "?page=bleat_page&bleat_id=" + $(this).val();
       });
    });
 

@@ -206,7 +206,35 @@ def getUserBleats(username):
    # after retrieving, add these to the dictionary
    parseBleats()
 
+def getSingleBleat(bleat_id):
+   global siteVariables
 
+   selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.bleat_id=(?)"
+   db_conn.execute(selectString, (bleat_id, ))
+
+   parseBleats(True)
+
+# retrieve belats as specified by array
+def getManyBleats(bleat_ids):
+   selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE "
+   for bleat in bleat_ids:
+      selectString += "bleats.bleat_id=(?) OR "
+   selectString = selectString[:-4]
+   selectString += " ORDER BY bleats.time DESC"
+   db_conn.execute(selectString, tuple(bleat_ids))
+   parseBleats()
+
+# recursively get all replies to a tweet
+def getBleatReplies(bleat_id):
+   bleatReplies = []
+   while True:
+      selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.bleat_id=(?)"
+      db_conn.execute(selectString, (bleat_id, ))
+      bleat_id = db_conn.fetchone()['in_reply_to']
+      if not bleat_id:
+         break
+      bleatReplies.append(bleat_id)
+   return bleatReplies
 
 def searchBleats(searchString):
    # tweet search results
@@ -216,26 +244,58 @@ def searchBleats(searchString):
    # after retrieving, add these to the dictionary
    parseBleats()
 
+def parseBleats(singleBleat=False):
+   global siteVariables
+   if singleBleat:
+      siteVariables['featuredBleat'] = []
+   else:
+      siteVariables['myFeed'] = []
+   for row in db_conn:
+      curRow = {}
+      for key in row.keys():
+         if key == "time":
+            curRow[key] = convertTime(row[key])
+         elif key == "file_1":
+            if row[key]:
+               extension = row[key].rsplit('.', 1)[-1]
+               if extension.lower() == "mp4":
+                  curRow['media_type'] = "video"
+               else:
+                  curRow['media_type'] = "images"
+            else:
+               curRow['media_type'] = ""
+            curRow[key] = row[key]
+         else:
+            curRow[key] = row[key]
+      if singleBleat:
+         siteVariables['featuredBleat'].append(curRow)
+      else:
+         siteVariables['myFeed'].append(curRow)
+   conn.commit()
+
 def processSearchString():
    searchString = form.getfirst("search-txt", "")
    siteVariables['searchString'] = searchString
    searchString = searchString.lower().strip()
    searchString = "%"+searchString+"%"
    return searchString
-  
 
-def parseBleats():
-   global siteVariables
-   siteVariables['myFeed'] = []
-   for row in db_conn:
-      curRow = {}
-      for key in row.keys():
-         if key == "time":
-            curRow[key] = convertTime(row[key])
-         else:
-            curRow[key] = row[key]
-      siteVariables['myFeed'].append(curRow)
-   conn.commit()
+def validBleat(bleat_id):
+   db_conn.execute('SELECT * FROM bleats WHERE bleat_id=(?)', (bleat_id, ))
+   try:
+      bleat_id = db_conn.fetchone()['bleat_id']
+   except:
+      bleaet_id = None
+   if bleat_id:
+      return bleat_id
+   return None
+
+def bleatToUser(bleat_id):
+   db_conn.execute('SELECT * FROM bleats WHERE bleat_id=(?)', (bleat_id, ))
+   user = db_conn.fetchone()['username']
+   return user
+
+
 
 def validUser(username, caseSensitive=False):
    if caseSensitive:
@@ -606,6 +666,8 @@ elif page == "feed" or (page == "settings" or update_settings) or page == "follo
       page = "home"
 elif page == "user_page":
    page = "user_page"
+elif page == "bleat_page":
+   page == "bleat_page"
 elif page == "sign_up" or sign_up:
    if checkSession():
       headers = "Location: ?page=feed" #if logged in redirect to feed
@@ -779,13 +841,10 @@ if page != "error":
             processNewUserForm(formFields, False, True) #get empty errorMsgs dict
       elif new_tweet:
          formFields = getTweetFields()
-         print headers
-         print
-         print formFields
          validForm = validateTweetFields(formFields)
          if validForm:
             insertTweet(formFields)
-         print siteVariables['errorMsgs']
+            getFeed()
       elif page == "followme" or page == "unlisten":
          # add to followers list
          follow_user = form.getfirst("user", "")
@@ -855,6 +914,27 @@ if page != "error":
       else:
          headers = "Location: ?page=feed"
          page = "feed"
+   elif page == "bleat_page":
+      targetBleat = form.getfirst("bleat_id", "")
+      targetBleat = validBleat(targetBleat)
+      if targetBleat != None:
+         targetUser = bleatToUser(targetBleat)
+         myDetails(targetUser)
+         getSingleBleat(targetBleat)
+         bleatReplies = getBleatReplies(targetBleat)
+         siteVariables['bleat_replies'] = False
+         if len(bleatReplies):
+            siteVariables['bleat_replies'] = True
+            getManyBleats(bleatReplies)
+         siteVariables['loggedin_user'] = False
+         siteVariables['following'] = False
+         if checkSession():
+            siteVariables['loggedin_user'] = bool(username == targetUser)
+            siteVariables['following'] = isFollowing(username, targetUser)
+      else:
+         headers = "Location: ?page=feed"
+         page = "feed"
+
 
 
 # process relevant page

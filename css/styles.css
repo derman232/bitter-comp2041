@@ -279,3 +279,43 @@ input[type="file"] {
 }
 /* ... */
 
+
+/* bleat page */
+.large-bleet-panel {
+   padding: 40px;
+}
+.large-bleet-avatar-wrapper {
+   display: inline-block;
+   vertical-align: middle;
+   width: 15%;
+   padding-right: 1%;
+}
+.large-user-text {
+   display: inline-block;
+   vertical-align: middle;
+   width: 60%;
+}
+.large-bleet-avatar {
+   width: 100%;
+   padding-right: 5px;
+}
+.large-bleet-text {
+   padding-top: 10px;
+   vertical-align: middle;
+   width: 100%;
+   line-height: 34px;
+   font-size: 28px;
+   font-weight: 300;
+   letter-spacing .01em;
+}
+.large-bleet-video-wrapper {
+   width: 100%;
+   text-align: center;
+}
+.large-bleat-img {
+   max-height: 300px;
+   min-height: 300px;
+   margin: auto;
+}
+
+

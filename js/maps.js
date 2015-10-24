@@ -15,8 +15,12 @@ function initAutocomplete() {
 
   var marker = new google.maps.Marker({
     position: myLatLng,
-    map: map
+    map: map,
+    title: 'Your location'
   });
+  if (!($("#home_location").length)) {
+      return;
+  }
 
   // Create the search box and link it to the UI element.
   var input = document.getElementById('home_location');

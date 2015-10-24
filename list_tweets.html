@@ -10,14 +10,22 @@
             <input type="hidden" name="bleat_id" id="bleat_id" value="{{ row|bleat_id }}">
             {{ row|bleat }}
             <br>
+            <span class="grey-text">
             {% if row|hasLocation %}
             <span class="glyphicon glyphicon-map-marker" aria-hidden="true"></span>
             {% endif %}
             {% if row|files %}
-            {{ row|file_1 }}
+            {% if row|media_type == "images" %}
             <span class="glyphicon glyphicon glyphicon-picture" aria-hidden="true"></span>
+            {% else %}
+            <span class="glyphicon glyphicon glyphicon-film" aria-hidden="true"></span>
+            {% endif %}
             {{ row|files }}
             {% endif %}
+            {% if row|in_reply_to %}
+            <span class="glyphicon glyphicon-share-alt" aria-hidden="true"></span>&nbsp;In Reply to...
+            {% endif %}
+            </span>
          </div>
       </div>
    </div>
