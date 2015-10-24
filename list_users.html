@@ -11,7 +11,11 @@
             <b>{{ row|full_name }}</b><br><span class="grey-text">(@{{ row|username }})</span><br>
          </div><br>
          <span class="grey-text small-text">{{ row|description }}</span><br>
+         {% if row|following is True %}
+         <a href="?page=unlisten&user={{ row|username }}"><button class="btn btn-primary follow-btn" name="follow-btn" id="follow-btn">Remove</button></a>
+         {% else %}
          <a href="?page=followme&user={{ row|username }}"><button class="btn btn-primary follow-btn" name="follow-btn" id="follow-btn">Listen</button></a>
+         {% endif %}
       </div>
    </div>
 </div>

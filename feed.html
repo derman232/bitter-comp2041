@@ -34,13 +34,17 @@
       </div>
       <div class="panel panel-default tweets-panel">
          <div class="panel-heading">
-            <form method="post" id="new-tweet">
+            <form method="post" id="new-tweet" enctype=multipart/form-data>
                <div class="input-group">
                  <textarea rows="1" class="form-control" name="new-tweet" id="new-tweet" placeholder="Why so bitter?"></textarea>
                  <div class="tweet-submit row">
-                    <div class="col-md-8"></div>
+                    <div class="col-md-8">
+                       <button class="btn btn-primary" name="location-btn" id="location-btn">Add Location</button>
+                       <input type="file" name="tweet-media" id="tweet-media" multiple>
+                       <input type="hidden" name="tweet-lat" id="tweet-lat" value="">
+                       <input type="hidden" name="tweet-long" id="tweet-long" value="">
+                    </div>
                     <div class="col-md-4 tweet-btn">
-                       <button class="btn btn-primary" name="location-btn" id="location-btn">Location</button>
                        <div class="char-count" name="char-count">140</div>
                        <button type="submit" class="btn btn-primary" name="tweet-btn" id="tweet-btn" value="submit">Tweet</button>
                     </div>

@@ -35,6 +35,14 @@ form {
 input[type="file"] {
    display: inline-block;
 }
+.header-msg {
+   width: 100%;
+   background-color: yellow;
+   height: 40px;
+   text-align: center;
+   line-height: 40px;
+   margin-top: 8px;
+}
 
 
 /* header styles */
@@ -159,6 +167,18 @@ input[type="file"] {
    width: 65%;
    float: right; 
 }
+.tweets-panel #location-btn {
+   padding: 5px;
+   width: 38%;
+   float: left;
+}
+.tweets-panel #tweet-media {
+   padding-left: 1%;
+   width: 57%;
+   height: 34px;
+   padding-top: 8px;
+   padding-left: 15px;
+}
 .tweets-panel .input-group .char-count {
    text-align: right;
    vertical-align: middle;
@@ -254,5 +274,8 @@ input[type="file"] {
 
 
 /* public user page styles */
+#big-follow-btn {
+   width: 100%;
+}
 /* ... */
 

@@ -12,6 +12,13 @@
 <div class="feed-wrapper row">
    <div class="feed-trends col-md-3">
       {% include (public_profile_summary.html) %}
+      {% if loggedin_user %}
+      {# cannot listen to yourself #}
+      {% elif following %}
+      <a href="?page=unlisten&user={{ myDetails|username }}"><button class="btn btn-primary" name="big-follow-btn" id="big-follow-btn">Remove {{ myDetails|full_name }}</button></a><br><br>
+      {% else %}
+      <a href="?page=followme&user={{ myDetails|username }}"><button class="btn btn-primary" name="big-follow-btn" id="big-follow-btn">Listen to {{ myDetails|full_name }}</button></a><br><br>
+      {% endif %}
       <div class="panel panel-default trends-panel">
          <div class="panel-heading">
             <h3 class="panel-title">Trends</h3>

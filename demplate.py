@@ -177,8 +177,9 @@ class SiteNodes():
    def convertIf(self, values):
       for node in self.myNodes:  #loop over nodes until we find true one
          if node.evaluate(values):
-            break
-      return node.convert(values) #convert true node
+            return node.convert(values) #convert true node
+      # if no nodes are true, return empty value
+      return ""
 
 class IncludeNode:
    def __init__(self, site):

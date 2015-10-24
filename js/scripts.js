@@ -35,6 +35,34 @@ $('document').ready(function(){
       }
    });
 
+   $('#location-btn').on("click", function() {
+      // adapted from https://developers.google.com/web/fundamentals/native-hardware/user-location/obtain-location?hl=en
+      event.preventDefault();
+      if ($(this).text() == 'Remove Location') {
+          $('#tweet-lat').val('');
+          $('#tweet-long').val('');
+          $('#location-btn').text('Add Location');
+      } else if (navigator.geolocation) {
+       $('#location-btn').text('Adding Location...');
+        var startPos;
+        var geoOptions = {
+           timeout: 10 * 1000
+        }
+
+        var geoSuccess = function(position) {
+          startPos = position;
+          $('#tweet-lat').val(startPos.coords.latitude);
+          $('#tweet-long').val(startPos.coords.longitude);
+          $('#location-btn').text('Remove Location');
+        };
+        var geoError = function(error) {
+          $('#location-btn').text('Add Location');
+          alert('Unable to retrieve location. Error code: ' + error.code);
+        };
+
+        navigator.geolocation.getCurrentPosition(geoSuccess, geoError, geoOptions);
+     }
+   });
 
 
 });

@@ -21,6 +21,11 @@
             </div>
          </div>
       </div>
+      {% if message is True %}
+      <div class="header-msg">
+         {{ message_txt }}
+      </div>
+      {% endif %}
    </div>
 </nav>
 

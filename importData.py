@@ -43,12 +43,18 @@ def createTables():
    username        TEXT,
    listens         TEXT )''')
    c.execute('''CREATE TABLE bleats (
-   bleat_id        TEXT PRIMARY KEY,
+   bleat_id        INT PRIMARY KEY,
    in_reply_to     TEXT,
    username        TEXT,
    longitude       REAL,
    latitude        REAL,
+   hasLocation     INT , 
    time            INT ,
+   files           INT ,
+   file_1          TEXT,
+   file_2          TEXT,
+   file_3          TEXT,
+   file_4          TEXT,
    bleat           TEXT )''')
    c.execute('''CREATE TABLE sessions (
    username        TEXT,
@@ -84,22 +90,31 @@ for bleatsFile in glob.glob(BLEAT_DIR+"*"):
    userSearch = r"" + re.escape(BLEAT_DIR) + "(.*)"
    bleat_id   = re.match(userSearch, bleatsFile).group(1)
 
+   hasLocation = 0
    for line in open(bleatsFile):
       line = line.strip()
       details = line.split(':', 1)
       details[0] = details[0].strip()
       details[1] = details[1].strip()
       bleatDict[details[0]] = details[1]
+   if bleatDict['longitude'] and bleatDict['latitude']:
+      hasLocation = 1
    values = (
       bleat_id                ,
       bleatDict['in_reply_to'],
       bleatDict['username']   ,
       bleatDict['longitude']  ,
       bleatDict['latitude']   ,
+      hasLocation             ,
       bleatDict['time']       ,
+      0                       , #placeholders for attachments
+      ''                      ,
+      ''                      ,
+      ''                      ,
+      ''                      , 
       bleatDict['bleat']      
    )
-   c.execute("INSERT INTO bleats VALUES (?, ?, ?, ?, ?, ?, ?)", values);
+   c.execute("INSERT INTO bleats VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values);
    bleatDict = bleatDict.fromkeys(bleatDict, '')
 
 

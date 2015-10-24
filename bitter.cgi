@@ -20,13 +20,17 @@ DB_NAME = "bitter.db"
 MAGIC_STRING = "sjdkfls243u892rjf" # for hashes
 MAX_FILE_SIZE = 1024*1024*2 # 2 megabytes in bytes
 MAX_FILE_SIZE_STR = "2MB" # 2 megabytes in bytes
+MAX_VID_SIZE = 1024*1024*15 # 15 mb videos
+MAX_IMG_SIZE = 1024*1024*5  # 5  mb tweet attachments
 MAX_DESC_LEN = 100
 DEBUG = False
 DEBUG_HEADERS = False
 DEFAULT_PIC = "https://www.gravatar.com/avatar/d489b737cd6a6074c634ebfbb2a39396.jpg"
 DEFAULT_BG  = "http://localhost/~derek/bitter/img/default-banner.jpeg"
-VALID_MIME_IMAGES = ["image/jpeg", "image/png"]
-VALID_FILE_EXTS   = ["jpg", "jpeg", "png"]
+VALID_MIME_IMAGES       = ["image/jpeg", "image/png"]
+VALID_FILE_EXTS         = ["jpg", "jpeg", "png"]
+VALID_MIME_IMAGES_TWTS  = ["image/jpeg", "image/png", "image/gif", "video/mp4"]
+VALID_FILE_EXTS_TWTS    = ["jpg", "jpeg", "png", "bmp", "gif", "mp4"]
 UPLOAD_DIR = "userimg/"
 
 # get params
@@ -144,6 +148,7 @@ def matchingUsers(searchString, matches):
       curRow = {}
       for key in row.keys():
          curRow[key] = row[key]
+      curRow['following'] = isFollowing(row['username'])
       siteVariables['matchedUsers'].append(curRow)
 
 
@@ -232,8 +237,11 @@ def parseBleats():
       siteVariables['myFeed'].append(curRow)
    conn.commit()
 
-def validUser(username):
-   db_conn.execute('SELECT * FROM users WHERE lower(username)=?', (username.lower().strip(), ))
+def validUser(username, caseSensitive=False):
+   if caseSensitive:
+      db_conn.execute('SELECT * FROM users WHERE username=(?)', (username.strip(), ))
+   else:
+      db_conn.execute('SELECT * FROM users WHERE lower(username)=(?)', (username.lower().strip(), ))
    try:
       user = db_conn.fetchone()['username']
    except:
@@ -444,6 +452,18 @@ def uploadFile(curFile, fileStyle, username):
       return DEFAULT_PIC
    return filename
 
+def uploadAttachment(curFile, attachmentNum, bleat_id):
+   extension = curFile.filename.rsplit('.', 1)[-1]
+   filename = str(bleat_id)+"_"+str(attachmentNum)+"."+extension
+
+   # if we couldn't upload for some reason, fail silently..
+   filename = UPLOAD_DIR + filename
+   try:
+      open(filename, 'wb').write(curFile.file.read())
+   except:
+      pass
+   return filename
+
 def addNewUser(formFields):
    # hash password
    formFields['new_pass'] = hashlib.md5(formFields['new_pass']).hexdigest() #hash password
@@ -515,7 +535,6 @@ def updateNewUser(formFields):
       elif key == 'description': # description can be empty
          toUpdate['description'] = formFields['description']
 
-
    updateStr = ''
    updateGroup = ()
    for key in toUpdate:
@@ -528,6 +547,29 @@ def updateNewUser(formFields):
    db_conn.execute(updateStr, updateGroup)
    conn.commit()
 
+def isFollowing(target, user=None):
+   global username
+
+   if user is None:
+      user = username
+   db_conn.execute('SELECT COUNT(*) FROM listeners WHERE username=(?) AND listens=(?)', (user, target))
+   if int(db_conn.fetchone()[0]) != 0:
+      return True
+   return False
+
+def addFollower(user):
+   global username
+
+   if not isFollowing(user, username):
+      db_conn.execute("INSERT INTO listeners VALUES (?, ?)", (username, user))
+      conn.commit()
+   
+def removeFollower(user):
+   global username
+
+   db_conn.execute("DELETE FROM listeners WHERE username=(?) AND listens=(?)", (username, user))
+   conn.commit()
+
 
 
 # manage page selection (and some form submission checking...)
@@ -537,6 +579,8 @@ all_search = form.getfirst("main-search", "")
 user_search = form.getfirst("user-search", "")
 sign_up = form.getfirst("sign_up-btn", "")
 update_settings = form.getfirst("settings-btn", "")
+msg = form.getfirst("msg", "")
+new_tweet = form.getfirst("tweet-btn", "")
 
 if login:
    doLogin()
@@ -556,9 +600,9 @@ elif page == "home":
    if checkSession():
       headers = "Location: ?page=feed" #if logged in redirect to feed
       page = "feed"
-elif page == "feed" or (page == "settings" or update_settings):
+elif page == "feed" or (page == "settings" or update_settings) or page == "followme" or page == "unlisten" or new_tweet:
    if not checkSession():
-      headers = "Location: ?page=home" #if logged in redirect to feed
+      headers = "Location: ?page=home" #if not logged in redirect home
       page = "home"
 elif page == "user_page":
    page = "user_page"
@@ -572,10 +616,156 @@ else:
    page = "error"
 
 
+def getTweetFields():
+   global siteVariables
+
+   formFields = {
+      'new-tweet' : form.getfirst("new-tweet", "").strip(),
+      'tweet-lat' : form.getfirst("tweet-lat", ""),
+      'tweet-long' : form.getfirst("tweet-long", ""),
+      'tweet-media' : form.getfirst("tweet-media", ""),
+   }
+   try:
+      formFields['tweet-media'] = form['tweet-media']
+   except:
+      pass
+
+   siteVariables['formFields'] = formFields
+   return formFields
+
+
+# note in real twitter, following content rules apply
+# Maximum image size is 5MB and maximum video size is 15MB.
+# You may include up to 4 photos or 1 animated GIF or 1 video in a Tweet.
+# Supported image formats: PNG, JPEG, WEBP and GIF. Animated GIFs are supported.
+# Supported video formats: MP4
+# https://dev.twitter.com/rest/public/uploading-media
+def validateTweetFields(formFields, emptyErrors=False):
+   global siteVariables
+   valid = True
+
+   errorMsgs = {
+      'new-tweet' : '',
+      'tweet-location' : '',
+      'tweet-media' : ''
+   }
+   # if empty errors list required, return here
+   if emptyErrors:
+      siteVariables['errorMsgs'] = errorMsgs
+      valid = False
+      return valid
+
+   newTweet   = formFields['new-tweet']
+   tweetLat   = formFields['tweet-lat']
+   tweetLong  = formFields['tweet-long']
+   tweetMedia = formFields['tweet-media']
+   imgCount   = 0
+   vidCount   = 0
+   badMedia   = 0
+   badSize    = 0
+   mediaError = ""
+   if not newTweet:
+      valid = False
+      errorMsgs['new-tweet'] = "Please enter a bleat to continue"
+   elif len(newTweet) > 140:
+      valid = False
+      errorMsgs['new-tweet'] = "Bleat cannot exceed 140 characters"
+   elif (tweetLat and not tweetLong) or (tweetLong and not tweetLat):
+      valid = False
+      errorMsgs['tweet-location'] = "Something strange happened. Try adding your location again"
+   elif not isinstance(tweetMedia, str):
+      if not isinstance(tweetMedia, list):
+         tweetMedia = [tweetMedia]
+      for media in tweetMedia:
+         if media.filename:
+            if media.type in VALID_MIME_IMAGES_TWTS:
+               fileSize = len(media.value)
+               if media.type == "video/mp4":
+                  vidCount += 1
+                  if (fileSize > MAX_VID_SIZE):
+                     badSize += 1
+               else:
+                  if (fileSize > MAX_IMG_SIZE):
+                     badSize += 1
+                  imgCount += 1
+            else:
+               badMedia += 1
+      if imgCount > 0 and vidCount > 0:
+         mediaError = "Please only upload one type of media per tweet"
+      elif vidCount > 1:
+         mediaError = "Only one video can be attached to a tweet"
+      elif imgCount > 4:
+         mediaError = "Only up to four images can be attached to a tweet"
+      elif badMedia > 0:
+         mediaError = "Only PNG, JPEG, GIF & MP4 filetypes are supported"
+      elif badSize > 0:
+         mediaError = "Images cannot be larger than 5MB, Videos 15MB"
+      if mediaError:
+         valid = False
+         errorMsgs['tweet-media'] = mediaError 
+
+   # add to siteVars and return
+   siteVariables['errorMsgs'] = errorMsgs
+   return valid
+
+
+
+def getHighestId():
+   db_conn.execute('SELECT MAX(bleat_id) FROM bleats')
+   try:
+      return db_conn.fetchone()[0]
+   except:
+      return 0
+
+def insertTweet(formFields):
+   global username
+   newTweet   = formFields['new-tweet']
+   tweetLat   = formFields['tweet-lat']
+   tweetLong  = formFields['tweet-long']
+   tweetMedia = formFields['tweet-media']
+   curTime = int(time.mktime(time.gmtime()))
+
+   bleat_id = getHighestId() + 1
+
+   # upload images
+   attachmentCount = 0
+   attachmentNames = ['', '', '', '']
+   if not isinstance(tweetMedia, str):
+      if not isinstance(tweetMedia, list):
+         tweetMedia = [tweetMedia]
+      for media in tweetMedia:
+         if media.filename:
+            attachmentNames[attachmentCount] = uploadAttachment(media, attachmentCount, bleat_id)
+            attachmentCount += 1
+
+   # check if location is set
+   hasLocation = 0
+   if tweetLat and tweetLong:
+      hasLocation = 1
+   values = (
+      bleat_id           ,
+      ''                 , #in_reply_to
+      username           ,
+      tweetLong          ,
+      tweetLat           ,
+      hasLocation        ,
+      curTime            ,
+      attachmentCount    ,
+      attachmentNames[0] ,
+      attachmentNames[1] ,
+      attachmentNames[2] ,
+      attachmentNames[3] ,
+      newTweet
+   )
+   db_conn.execute("INSERT INTO bleats VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values);
+   conn.commit()
 
 # handle page creation, feed population etc.
 if page != "error":
-   if page == "feed" or page == "settings":
+   siteVariables['message'] = False
+   siteVariables['message_txt'] = ''
+
+   if page == "feed" or page == "settings" or page == "followme" or page == "unlisten":
       getFeed()
       myDetails(username)
       if page == "settings":
@@ -587,6 +777,45 @@ if page != "error":
                myDetails(username) # re-populate myDetails to reflect updated details
          else:
             processNewUserForm(formFields, False, True) #get empty errorMsgs dict
+      elif new_tweet:
+         formFields = getTweetFields()
+         print headers
+         print
+         print formFields
+         validForm = validateTweetFields(formFields)
+         if validForm:
+            insertTweet(formFields)
+         print siteVariables['errorMsgs']
+      elif page == "followme" or page == "unlisten":
+         # add to followers list
+         follow_user = form.getfirst("user", "")
+         if validUser(follow_user, True):
+            if page == "followme":
+               addFollower(follow_user)
+               headers = "Location: ?page=feed&msg_type=2&msg=True&user=" + follow_user
+               page = "feed"
+            elif page == "unlisten":
+               removeFollower(follow_user)
+               headers = "Location: ?page=feed&msg_type=3&msg=True&user=" + follow_user
+               page = "feed"
+         else:
+            headers = "Location: ?page=feed&msg_type=1&msg=True&user=" + follow_user
+            page = "feed"
+      elif bool(msg):
+         follow_user = form.getfirst("user", "")
+         if follow_user:
+            siteVariables['message'] = True
+            msgType = form.getfirst("msg_type", "")
+            myMsg = ''
+            if (msgType == '1'):
+               myMsg = "Couldn't find user to listen to"
+            elif (msgType == '2'):
+               myMsg = "You are now listening to " + follow_user
+            elif (msgType == '3'):
+               myMsg = "You are no longer listening to " + follow_user
+            else:
+               siteVariables['message'] = False
+            siteVariables['message_txt'] = myMsg
 
    elif page == "sign_up":
       formFields = getNewUserFormFields()
@@ -618,9 +847,14 @@ if page != "error":
       if targetUser != None:
          myDetails(targetUser)
          getUserBleats(targetUser)
+         siteVariables['loggedin_user'] = False
+         siteVariables['following'] = False
+         if checkSession():
+            siteVariables['loggedin_user'] = bool(username == targetUser)
+            siteVariables['following'] = isFollowing(username, targetUser)
       else:
          headers = "Location: ?page=feed"
-
+         page = "feed"
 
 
 # process relevant page

@@ -9,6 +9,15 @@
             <a href="?page=user_page&user={{ row|username }}"><b>{{ row|full_name }}</b></a> <span class="grey-text">@{{ row|username }} | {{ row|time }}</span><br>
             <input type="hidden" name="bleat_id" id="bleat_id" value="{{ row|bleat_id }}">
             {{ row|bleat }}
+            <br>
+            {% if row|hasLocation %}
+            <span class="glyphicon glyphicon-map-marker" aria-hidden="true"></span>
+            {% endif %}
+            {% if row|files %}
+            {{ row|file_1 }}
+            <span class="glyphicon glyphicon glyphicon-picture" aria-hidden="true"></span>
+            {{ row|files }}
+            {% endif %}
          </div>
       </div>
    </div>
