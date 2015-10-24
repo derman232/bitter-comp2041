@@ -26,6 +26,7 @@ else:
    DEFAULT_BG  = "http://localhost/~derek/bitter/img/default-banner.jpeg"
    PROFILE_DIR = "http://www.cse.unsw.edu.au/~cs2041/15s2/assignments/bitter/dataset-small/users/"
 
+USER_MATCH = r'@[a-zA-Z0-9_]{1,15}'
 
 def createTables():
    c.execute('''CREATE TABLE users (
@@ -56,9 +57,13 @@ def createTables():
    file_3          TEXT,
    file_4          TEXT,
    bleat           TEXT )''')
+   c.execute('''CREATE TABLE reply_to (
+   bleat_id        INT ,
+   username        TEXT )''')
    c.execute('''CREATE TABLE sessions (
    username        TEXT,
    sid             TEXT )''')
+
 
 
 
@@ -115,8 +120,15 @@ for bleatsFile in glob.glob(BLEAT_DIR+"*"):
       bleatDict['bleat']      
    )
    c.execute("INSERT INTO bleats VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values);
-   bleatDict = bleatDict.fromkeys(bleatDict, '')
 
+   bleatTxt = bleatDict['bleat']
+   replies = re.findall(USER_MATCH, bleatTxt)
+   replies = list(set(replies))  #remove dulpicates
+   if replies:
+      for user in replies:
+         c.execute("INSERT INTO reply_to VALUES (?, ?)", (bleat_id, user));
+   # clear bleat dict
+   bleatDict = bleatDict.fromkeys(bleatDict, '')
 
 
 for a in glob.glob(USER_DIR+"*"):

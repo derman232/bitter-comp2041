@@ -100,16 +100,37 @@
                      {% if row|hasLocation %}
                         <br>
                         <div id="map" style="height: 250px"></div>
-                        <input type="hidden" name="home_lat" id="home_lat" value="{{ myDetails|home_latitude }}">
-                        <input type="hidden" name="home_long" id="home_long" value="{{ myDetails|home_longitude }}">
+                        <input type="hidden" name="home_long" id="home_long" value="{{ row|longitude }}">
+                        <input type="hidden" name="home_lat" id="home_lat" value="{{ row|latitude }}">
                      {% endif %}
                   </div>
                <br>
                <span class="grey-text">{{ row|time }}</span>
                </div>
             {% endfor %}
-
-
+         </div>
+         <div class="panel panel-default tweets-panel">
+            <div class="panel-heading">
+               <h3 class="panel-title">Reply to this bleat</h3>
+            </div>
+            <form method="post" id="new-tweet" enctype=multipart/form-data style="padding: 20px;" action="?page=feed">
+               <div class="input-group">
+                 <textarea rows="1" class="form-control" name="new-tweet" id="new-tweet" placeholder="Why so bitter?">@{{ myDetails|username }} </textarea>
+                 <div class="tweet-submit row">
+                    <div class="col-md-8">
+                       <button class="btn btn-primary" name="location-btn" id="location-btn">Add Location</button>
+                       <input type="file" name="tweet-media" id="tweet-media" multiple>
+                       <input type="hidden" name="tweet-lat" id="tweet-lat" value="">
+                       <input type="hidden" name="tweet-long" id="tweet-long" value="">
+                       <input type="hidden" name="in-reply-to" id="in-reply-to" value="{{ targetBleat }}">
+                    </div>
+                    <div class="col-md-4 tweet-btn">
+                       <div class="char-count" name="char-count">140</div>
+                       <button type="submit" class="btn btn-primary" name="tweet-btn" id="tweet-btn" value="submit">Bleat</button>
+                    </div>
+                 </div>
+               </div>
+            </form>
          </div>
          {% if bleat_replies %}
          <div class="panel panel-default tweets-panel">

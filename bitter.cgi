@@ -32,6 +32,8 @@ VALID_FILE_EXTS         = ["jpg", "jpeg", "png"]
 VALID_MIME_IMAGES_TWTS  = ["image/jpeg", "image/png", "image/gif", "video/mp4"]
 VALID_FILE_EXTS_TWTS    = ["jpg", "jpeg", "png", "bmp", "gif", "mp4"]
 UPLOAD_DIR = "userimg/"
+USER_MATCH = r'^@[a-zA-Z0-9_]{1,30}$'
+KEYWORD_MATCH = r'^#[a-zA-Z0-9_]*$'
 
 # get params
 form = cgi.FieldStorage()
@@ -186,12 +188,21 @@ def getFeed():
    global username
 
    listeners = (username, )
-   selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.username=?"
+   selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.username=(?)"
+
    # get listeners
-   db_conn.execute('SELECT * FROM listeners WHERE username=?', (username, ))
+   db_conn.execute('SELECT * FROM listeners WHERE username=(?)', (username, ))
    for row in db_conn:
-      selectString += " OR bleats.username=?"
-      listeners = (str(row['listens']), ) + listeners
+      selectString += " OR bleats.username=(?)"
+      listeners = listeners + (str(row['listens']), )
+
+   # get '@' tweets
+   db_conn.execute('SELECT * FROM reply_to WHERE username=(?)', (username, ))
+   for row in db_conn:
+      selectString += " OR bleats.bleat_id=(?)"
+      listeners = listeners + (str(row['bleat_id']), )
+
+   # set order
    selectString += " ORDER BY bleats.time DESC"
    db_conn.execute(selectString, listeners)
    # after retrieving, add these to the dictionary
@@ -237,9 +248,15 @@ def getBleatReplies(bleat_id):
    return bleatReplies
 
 def searchBleats(searchString):
-   # tweet search results
-   selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE lower(bleat) LIKE (?)"
-   selectString += " ORDER BY bleats.time DESC"
+   # if hashtag search
+   if re.match(KEYWORD_MATCH, searchString[1:-1]):
+      searchString = "% "+searchString[1:-1]+" %"
+      selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE (' ' || lower(bleat) || ' ') LIKE (?)"
+      selectString += " ORDER BY bleats.time DESC"
+   else:
+      # tweet search results
+      selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE lower(bleat) LIKE (?)"
+      selectString += " ORDER BY bleats.time DESC"
    db_conn.execute(selectString, (searchString, ))
    # after retrieving, add these to the dictionary
    parseBleats()
@@ -265,6 +282,15 @@ def parseBleats(singleBleat=False):
             else:
                curRow['media_type'] = ""
             curRow[key] = row[key]
+         elif key == "bleat":
+            bleatTxt = row[key].split(' ')
+            for n in xrange(len(bleatTxt)):
+               if re.match(USER_MATCH, bleatTxt[n]):
+                  bleatTxt[n] = '<a href="?page=user_page&user='+bleatTxt[n][1:]+'">'+bleatTxt[n]+'</a>'
+               if re.match(KEYWORD_MATCH, bleatTxt[n]):
+                  bleatTxt[n] = '<a href="?search-txt=%23'+bleatTxt[n][1:]+'&main-search=submit">'+bleatTxt[n]+'</a>'
+
+            curRow[key] = ' '.join(bleatTxt)
          else:
             curRow[key] = row[key]
       if singleBleat:
@@ -328,7 +354,7 @@ def isNumber(n):
       return False
 
 def validUsername(username):
-   return bool(re.match(r'^[a-zA-Z0-9_]{1,15}$', username))
+   return bool(re.match(r'^[a-zA-Z0-9_]{1,30}$', username))
 
 #at least one digit, one uppercase, one lowercase, and can contain special characters !@#$%_^&*
 def validPassword(password):
@@ -686,6 +712,7 @@ def getTweetFields():
       'tweet-lat' : form.getfirst("tweet-lat", ""),
       'tweet-long' : form.getfirst("tweet-long", ""),
       'tweet-media' : form.getfirst("tweet-media", ""),
+      'in-reply-to' : form.getfirst("in-reply-to", "")
    }
    try:
       formFields['tweet-media'] = form['tweet-media']
@@ -709,7 +736,8 @@ def validateTweetFields(formFields, emptyErrors=False):
    errorMsgs = {
       'new-tweet' : '',
       'tweet-location' : '',
-      'tweet-media' : ''
+      'tweet-media' : '',
+      'in-reply-to' : ''
    }
    # if empty errors list required, return here
    if emptyErrors:
@@ -721,6 +749,7 @@ def validateTweetFields(formFields, emptyErrors=False):
    tweetLat   = formFields['tweet-lat']
    tweetLong  = formFields['tweet-long']
    tweetMedia = formFields['tweet-media']
+   inReplyTo  = formFields['in-reply-to']
    imgCount   = 0
    vidCount   = 0
    badMedia   = 0
@@ -735,6 +764,11 @@ def validateTweetFields(formFields, emptyErrors=False):
    elif (tweetLat and not tweetLong) or (tweetLong and not tweetLat):
       valid = False
       errorMsgs['tweet-location'] = "Something strange happened. Try adding your location again"
+   elif inReplyTo:
+      # check if bleat is valid
+      if not validBleat(inReplyTo):
+         valid = False
+         errorMsgs['in-reply-to'] = "Something strange happened. Try again later"
    elif not isinstance(tweetMedia, str):
       if not isinstance(tweetMedia, list):
          tweetMedia = [tweetMedia]
@@ -770,8 +804,6 @@ def validateTweetFields(formFields, emptyErrors=False):
    siteVariables['errorMsgs'] = errorMsgs
    return valid
 
-
-
 def getHighestId():
    db_conn.execute('SELECT MAX(bleat_id) FROM bleats')
    try:
@@ -785,6 +817,7 @@ def insertTweet(formFields):
    tweetLat   = formFields['tweet-lat']
    tweetLong  = formFields['tweet-long']
    tweetMedia = formFields['tweet-media']
+   inReplyTo  = formFields['in-reply-to']
    curTime = int(time.mktime(time.gmtime()))
 
    bleat_id = getHighestId() + 1
@@ -800,13 +833,25 @@ def insertTweet(formFields):
             attachmentNames[attachmentCount] = uploadAttachment(media, attachmentCount, bleat_id)
             attachmentCount += 1
 
+   # check that replied to bleat's user is actually mentioned in the tweet
+   # otherwise, the tweet is not in reply to anything..
+   if inReplyTo:
+      bleatUser = '@'+bleatToUser(inReplyTo)
+      explodedTweet = newTweet.split(' ')
+      newBleatUsers = []
+      for word in explodedTweet:
+         if re.match(USER_MATCH, word):
+            newBleatUsers.append(word)
+      if bleatUser not in newBleatUsers:
+         inReplyTo = ''
+
    # check if location is set
    hasLocation = 0
    if tweetLat and tweetLong:
       hasLocation = 1
    values = (
       bleat_id           ,
-      ''                 , #in_reply_to
+      inReplyTo          , #in_reply_to
       username           ,
       tweetLong          ,
       tweetLat           ,
@@ -821,6 +866,20 @@ def insertTweet(formFields):
    )
    db_conn.execute("INSERT INTO bleats VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values);
    conn.commit()
+
+   # insert referenced ('@'ed) users to database
+   explodedTweet = newTweet.split(' ')
+   newBleatUsers = []
+   for word in explodedTweet:
+      if re.match(USER_MATCH, word):
+         newBleatUsers.append(word)
+   newBleatUsers = list(set(newBleatUsers))  #remove dulpicates
+   if newBleatUsers:
+      for user in newBleatUsers:
+         user = user[1:]
+         if validUser(user, True):
+            db_conn.execute("INSERT INTO reply_to VALUES (?, ?)", (bleat_id, user));
+
 
 # handle page creation, feed population etc.
 if page != "error":
@@ -910,13 +969,14 @@ if page != "error":
          siteVariables['following'] = False
          if checkSession():
             siteVariables['loggedin_user'] = bool(username == targetUser)
-            siteVariables['following'] = isFollowing(username, targetUser)
+            siteVariables['following'] = isFollowing(targetUser)
       else:
          headers = "Location: ?page=feed"
          page = "feed"
    elif page == "bleat_page":
       targetBleat = form.getfirst("bleat_id", "")
       targetBleat = validBleat(targetBleat)
+      siteVariables['targetBleat'] = targetBleat
       if targetBleat != None:
          targetUser = bleatToUser(targetBleat)
          myDetails(targetUser)
@@ -930,7 +990,7 @@ if page != "error":
          siteVariables['following'] = False
          if checkSession():
             siteVariables['loggedin_user'] = bool(username == targetUser)
-            siteVariables['following'] = isFollowing(username, targetUser)
+            siteVariables['following'] = isFollowing(targetUser)
       else:
          headers = "Location: ?page=feed"
          page = "feed"
