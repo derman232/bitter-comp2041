@@ -4,6 +4,24 @@ $('document').ready(function(){
      $( "#login-form" ).submit();
    });
 
+   // delete and suspension button confirmation
+   $( "#suspend-btn" ).click(function() {
+      if (confirm('Are you sure you want to suspend your account?')) {
+          alert('Thanks for confirming');
+      } else {
+          alert('Why did you press cancel? You should have confirmed');
+      }
+   });
+   $( "#delete-acc-btn" ).click(function() {
+      if (confirm('Are you sure you want to DELETE your account? Note this cannot be undone.')) {
+          alert('Thanks for confirming');
+      } else {
+          alert('Why did you press cancel? You should have confirmed');
+      }
+   });
+
+
+
    // hide / show feed page new tweet box
    $( "textarea#new-tweet" ).focusin(function() {
       $(this).attr("rows", "3");

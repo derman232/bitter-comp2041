@@ -39,7 +39,8 @@ def createTables():
    profile_pic     TEXT,
    home_longitude  REAL,
    description     TEXT,
-   bg_pic          TEXT )''')
+   bg_pic          TEXT,
+   suspended       TEXT)''')
    c.execute('''CREATE TABLE listeners (
    username        TEXT,
    listens         TEXT )''')
@@ -164,9 +165,10 @@ for a in glob.glob(USER_DIR+"*"):
       profile_pic               ,
       userDict['home_longitude'],
       ''                        , #empty description
-      DEFAULT_BG   # default backgorund pic
+      DEFAULT_BG                , # default backgorund pic
+      ''                          # not suspended
    )
-   c.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
+   c.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
 
    for line in userDict['listens'].split():
       values = (

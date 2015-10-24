@@ -53,6 +53,10 @@
                </div>
             </form>
          </div>
+         <div class="feed-pagination">
+            <a href="?page=feed&num={{ prev_page }}"><button class="btn btn-primary" name="feed-prev" id="feed-prev">Prev</button></a>
+            <a href="?page=feed&num={{ next_page }}"><button class="btn btn-primary" name="feed-next" id="feed-next">Next</button></a>
+         </div>
          {% include (list_tweets.html) %}
       </div>
    </div>

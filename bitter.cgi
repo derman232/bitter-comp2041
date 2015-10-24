@@ -34,6 +34,8 @@ VALID_FILE_EXTS_TWTS    = ["jpg", "jpeg", "png", "bmp", "gif", "mp4"]
 UPLOAD_DIR = "userimg/"
 USER_MATCH = r'^@[a-zA-Z0-9_]{1,30}$'
 KEYWORD_MATCH = r'^#[a-zA-Z0-9_]*$'
+NUM_RESULTS = 10
+PREVIEW_RESULTS = 2
 
 # get params
 form = cgi.FieldStorage()
@@ -83,7 +85,7 @@ def doLogin():
    result = db_conn.fetchone()
    if result:
       #page = "feed"
-      headers = "Location: ?page=feed"
+      headers = "Location: ?page=feed&num=1"
       username = result["username"]
       createSession(username)
 
@@ -142,16 +144,31 @@ def convertTime(targetTime):
    return convertedTime
 
 
-def matchingUsers(searchString, matches):
-   selectString = "SELECT full_name, description, username, profile_pic, bg_pic FROM users WHERE lower(username) LIKE (?) LIMIT (?)"
-   db_conn.execute(selectString, (searchString, str(matches)))
-   siteVariables['matchedUsers'] = []
+def matchingUsers(searchString, matches=None):
+   global username
+   global siteVariables
+
+   selectString = "SELECT full_name, description, username, profile_pic, bg_pic FROM users WHERE lower(username) LIKE (?) LIMIT (?) OFFSET (?)"
+
+   if matches is None:
+      startNum, endNum = getPage()
+      db_conn.execute(selectString, (searchString, NUM_RESULTS, startNum))
+   else:
+      startNum = 0
+      db_conn.execute(selectString, (searchString, PREVIEW_RESULTS+1, startNum))
+
+   rows = []
    for row in db_conn:
+      rows.append(row)
+   siteVariables['matchedUsers'] = []
+   for row in rows:
       curRow = {}
       for key in row.keys():
          curRow[key] = row[key]
       curRow['following'] = isFollowing(row['username'])
-      siteVariables['matchedUsers'].append(curRow)
+      #curRow['following'] = False
+      if curRow['username'] != username:
+         siteVariables['matchedUsers'].append(curRow)
 
 
 # get details for target username
@@ -204,6 +221,12 @@ def getFeed():
 
    # set order
    selectString += " ORDER BY bleats.time DESC"
+
+   # set num results
+   startNum, endNum = getPage()
+   selectString += " LIMIT (?) OFFSET (?)"
+   listeners = listeners + (NUM_RESULTS, startNum)
+
    db_conn.execute(selectString, listeners)
    # after retrieving, add these to the dictionary
    parseBleats()
@@ -211,9 +234,14 @@ def getFeed():
 def getUserBleats(username):
    global siteVariables
 
-   selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.username=?"
+   selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.username=(?)"
    selectString += " ORDER BY bleats.time DESC"
-   db_conn.execute(selectString, (username, ))
+
+   # set num results
+   startNum, endNum = getPage()
+   selectString += " LIMIT (?) OFFSET (?)"
+
+   db_conn.execute(selectString, (username, NUM_RESULTS, startNum))
    # after retrieving, add these to the dictionary
    parseBleats()
 
@@ -232,7 +260,12 @@ def getManyBleats(bleat_ids):
       selectString += "bleats.bleat_id=(?) OR "
    selectString = selectString[:-4]
    selectString += " ORDER BY bleats.time DESC"
-   db_conn.execute(selectString, tuple(bleat_ids))
+
+   # set num results
+   startNum, endNum = getPage()
+   selectString += " LIMIT (?) OFFSET (?)"
+
+   db_conn.execute(selectString, tuple(bleat_ids) + (NUM_RESULTS, startNum))
    parseBleats()
 
 # recursively get all replies to a tweet
@@ -257,12 +290,38 @@ def searchBleats(searchString):
       # tweet search results
       selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE lower(bleat) LIKE (?)"
       selectString += " ORDER BY bleats.time DESC"
-   db_conn.execute(selectString, (searchString, ))
+
+   # set num results
+   startNum, endNum = getPage()
+   selectString += " LIMIT (?) OFFSET (?)"
+
+   db_conn.execute(selectString, (searchString, NUM_RESULTS, startNum))
    # after retrieving, add these to the dictionary
    parseBleats()
 
+def getPage():
+   global siteVariables
+   # get page number
+   num = form.getfirst("num", "0")
+   try:
+      num = int(num)
+   except:
+      num = 0
+   if num <= 0:
+      num = 0
+      siteVariables['prev_page'] = num
+   else:
+      siteVariables['prev_page'] = num-1
+
+   startNum = num*NUM_RESULTS
+   endNum   = (num+1)*NUM_RESULTS
+   siteVariables['next_page'] = num+1
+   return startNum, endNum
+
+
 def parseBleats(singleBleat=False):
    global siteVariables
+
    if singleBleat:
       siteVariables['featuredBleat'] = []
    else:
@@ -579,9 +638,10 @@ def addNewUser(formFields):
       profile_pic                 ,
       formFields['home_long']     ,
       formFields['description']   ,
-      bg_pic       # default backgorund pic
+      bg_pic                      , # default backgorund pic
+      ''                            # not suspended
    )
-   db_conn.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
+   db_conn.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
    conn.commit()
 
 def updateNewUser(formFields):
@@ -968,11 +1028,11 @@ if page != "error":
    elif page == "search":
       searchString = processSearchString()
       searchBleats(searchString)
-      matchingUsers(searchString, 2)
+      matchingUsers(searchString, PREVIEW_RESULTS)
       myDetails(username)
    elif page == "user_search":
       searchString = processSearchString()
-      matchingUsers(searchString, 10)
+      matchingUsers(searchString, None)
       #public_user = form.getfirst("public_user", "")
       #selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.username=?"
       #selectString += " ORDER BY bleats.time DESC"

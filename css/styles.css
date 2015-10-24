@@ -146,6 +146,13 @@ input[type="file"] {
 
 
 /* Feed styles */
+.feed-pagination {
+   padding: 15px 15px 0 0;
+   text-align: right;
+   font-size: 18px; 
+   width: 100%;
+}
+
 .feed-wrapper {
    width: 100%;
    max-width: 1200px;
@@ -236,6 +243,12 @@ input[type="file"] {
 .search-avatar-text {
    vertical-align: middle;
    display: inline-block;
+}
+.users-pagination {
+   padding: 0 15px 15px 0;
+   text-align: right;
+   font-size: 18px; 
+   width: 100%;
 }
 
 /* accounts page styles */

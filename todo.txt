@@ -10,20 +10,20 @@ Interface (Done)
 Logging In & Out (Done) 
 Search for Users by Username or Full Name (Done)
 
-Sending Bleats
-Bleets Attachment
-   - attach images
-   - attach video
+Sending Bleats    (done)
+Bleets Attachment (Done)
+   - attach images(done)
+   - attach video (done)
 
 Displaying Relevant Bleats (Done)
 Listening/Unlistening to Users (Done)
 Searching Bleats (Done)
 
 Replying to Bleats (Done)
-   Pagination of Bleats & Search Results
+               Pagination of Bleats & Search Results
 Bleat respones (Go one level up, then simply link)
-Deleting Bleats
-Suspending/Deleting Bitter Account
+Deleting Bleats (kinda..)
+Suspending/Deleting Bitter Account 
 
 Email notifications
    - when mentioned
