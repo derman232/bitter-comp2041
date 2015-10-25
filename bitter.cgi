@@ -1686,5 +1686,4 @@ if DEBUG:
    print search
    search = form.getfirst("search-txt", "")
    print search
-
-print siteVariables
+   print siteVariables
