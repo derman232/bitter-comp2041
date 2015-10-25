@@ -33,6 +33,4 @@ Email notifications
 Advanced features
    - Encrypting passwords (Done)
    - Location tracking?: https://developers.google.com/web/fundamentals/native-hardware/user-location/obtain-location?hl=en#when-to-use-geolocation
-
-THINGS
-   - cannot NOT set a location
+   -  set location

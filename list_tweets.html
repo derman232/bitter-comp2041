@@ -1,7 +1,11 @@
 <div class="tweet-collection">
    {% for row in myFeed %}
    <div class="tweet-body-selector">
+      {% if featuredBleatId == row|bleat_id %}
+      <div class="panel-body tweet-body featured-tweet row">
+      {% else %}
       <div class="panel-body tweet-body row">
+      {% endif %}
          <div class="bleet-avatar-wrapper">
             <img class="bleet-avatar" src="{{ row|profile_pic }}">
          </div>

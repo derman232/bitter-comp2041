@@ -348,21 +348,34 @@ def getManyBleats(bleat_ids):
    db_conn.execute(selectString, tuple(bleat_ids) + (NUM_RESULTS, startNum))
    parseBleats()
 
-# recursively get all replies to a tweet
+# recursively get all replies to a bleet
 def getBleatReplies(bleat_id):
    bleatReplies = []
+
+   # get people who have replied to this bleet
+   bleatReplies.append(bleat_id)
+   bleatReplies += findReplies(bleat_id)
+
+   # get all replies to a bleet
    while True:
       selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.bleat_id=(?)"
       # exclude suspended accounts
       selectString += " AND users.suspended <> 'suspended'"
       db_conn.execute(selectString, (bleat_id, ))
 
+      # update bleet id with next bleet
       bleat_id = db_conn.fetchone()
       if bleat_id:
          bleat_id = bleat_id['in_reply_to']
       else:
          break
       bleatReplies.append(bleat_id)
+
+#   print headers
+#   print
+#   print bleatReplies
+#   print bleat_id
+#
    return bleatReplies
 
 def searchBleats(searchString):
@@ -439,6 +452,7 @@ def parseBleats(singleBleat=False):
             curRow[key] = row[key]
       if singleBleat:
          siteVariables['featuredBleat'].append(curRow)
+         siteVariables['featuredBleatId'] = curRow['bleat_id']
       else:
          siteVariables['myFeed'].append(curRow)
    conn.commit()
@@ -1411,8 +1425,10 @@ def resetPassword(new_pass, forgot_id):
 
 # handle page creation, feed population etc.
 if page != "error":
+   # setup empty global sitevars
    siteVariables['message'] = False
    siteVariables['message_txt'] = ''
+   siteVariables['featuredBleatId'] = ''
 
    if page == "feed" or page == "settings" or page == "followme" or page == "unlisten" or page == "delete":
       validateTweetFields({}, True)
