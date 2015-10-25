@@ -278,7 +278,7 @@ def getFeed():
    global username
 
    listeners = (username, )
-   selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.username=(?)"
+   selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE (bleats.username=(?)"
 
    # get listeners
    db_conn.execute('SELECT * FROM listeners WHERE username=(?)', (username, ))
@@ -293,7 +293,7 @@ def getFeed():
       listeners = listeners + (str(row['bleat_id']), )
 
    # exclude suspended accounts
-   selectString += " AND users.suspended <> 'suspended'"
+   selectString += ") AND users.suspended <> 'suspended'"
 
    # set order
    selectString += " ORDER BY bleats.time DESC"
@@ -331,13 +331,13 @@ def getSingleBleat(bleat_id):
 
 # retrieve belats as specified by array
 def getManyBleats(bleat_ids):
-   selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE "
+   selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE ("
    for bleat in bleat_ids:
       selectString += "bleats.bleat_id=(?) OR "
    selectString = selectString[:-4]
 
    # exclude suspended accounts
-   selectString += " AND users.suspended <> 'suspended'"
+   selectString += ") AND users.suspended <> 'suspended'"
 
    selectString += " ORDER BY bleats.time DESC"
 
@@ -1526,18 +1526,22 @@ if page != "error":
       siteVariables['targetBleat'] = targetBleat
       if targetBleat != None:
          targetUser = bleatToUser(targetBleat)
-         myDetails(targetUser)
-         getSingleBleat(targetBleat)
-         bleatReplies = getBleatReplies(targetBleat)
-         siteVariables['bleat_replies'] = False
-         if len(bleatReplies):
-            siteVariables['bleat_replies'] = True
-            getManyBleats(bleatReplies)
-         siteVariables['loggedin_user'] = False
-         siteVariables['following'] = False
-         if checkSession():
-            siteVariables['loggedin_user'] = bool(username == targetUser)
-            siteVariables['following'] = isFollowing(targetUser)
+         if activeAccount(targetUser):
+            myDetails(targetUser)
+            getSingleBleat(targetBleat)
+            bleatReplies = getBleatReplies(targetBleat)
+            siteVariables['bleat_replies'] = False
+            if len(bleatReplies):
+               siteVariables['bleat_replies'] = True
+               getManyBleats(bleatReplies)
+            siteVariables['loggedin_user'] = False
+            siteVariables['following'] = False
+            if checkSession():
+               siteVariables['loggedin_user'] = bool(username == targetUser)
+               siteVariables['following'] = isFollowing(targetUser)
+         else:
+            headers = "Location: ?page=feed"
+            page = "feed"
       else:
          headers = "Location: ?page=feed"
          page = "feed"
