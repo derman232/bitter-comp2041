@@ -276,6 +276,10 @@ input[type="file"] {
    vertical-align: middle;
    width: 100%;
 }
+.settings-checkboxes {
+   height:34px; 
+   line-height: 34px;
+}
 
 /* sign up page styles */
 .sign_up-btn {

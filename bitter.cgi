@@ -42,7 +42,9 @@ PREVIEW_RESULTS = 2
 EMAIL_HOST = 'smtp.gmail.com:587'
 EMAIL_FROM = "bittercs204115s2@gmail.com"
 EMAIL_PASS = "Bitter2041"
-BASE_URL = "http://localhost/~derek/bitter/"
+BASE_URL = os.environ.get('SCRIPT_URI')
+if BASE_URL == None:
+   BASE_URL = "http://localhost/~derek/bitter/"
 
 
 # get params
@@ -495,7 +497,10 @@ def getNewUserFormFields ():
       'bg_pic' : form.getfirst("bg_pic", ""),
       'home_location' : form.getfirst("home_location", ""),
       'home_lat' : form.getfirst("home_lat", ""),
-      'home_long' : form.getfirst("home_long", "")
+      'home_long' : form.getfirst("home_long", ""),
+      'notify_mention' : form.getfirst("notify_mention", ""),
+      'notify_reply' : form.getfirst("notify_reply", ""),
+      'notify_listen' : form.getfirst("notify_listen", "")
    }
    try:
       formFields['profile_pic'] = form['profile_pic']
@@ -699,9 +704,12 @@ def addNewUser(formFields):
       formFields['home_long']     ,
       formFields['description']   ,
       bg_pic                      , # default backgorund pic
+      'selected'                  , # all notifications enabled by default
+      'selected'                  , # all notifications enabled by default
+      'selected'                  , # all notifications enabled by default
       ''                            # not suspended
    )
-   db_conn.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
+   db_conn.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
 
    # add verify id to verify table
    db_conn.execute("INSERT INTO verify VALUES (?, ?)", (formFields['new_user'], verify_id))
@@ -728,6 +736,12 @@ def updateNewUser(formFields):
                toUpdate['bg_pic'] = bg_pic
          except:
             pass
+      elif key == "notify_mention":
+         toUpdate[key] = formFields[key]
+      elif key == "notify_listen":
+         toUpdate[key] = formFields[key]
+      elif key == "notify_reply":
+         toUpdate[key] = formFields[key]
       elif formFields[key]:
          if key == 'home_lat':
             toUpdate['home_latitude'] = formFields[key]
@@ -747,6 +761,7 @@ def updateNewUser(formFields):
 
    updateStr = ''
    updateGroup = ()
+
    for key in toUpdate:
       updateStr = updateStr + key + " = (?), "
       updateGroup = updateGroup + (toUpdate[key], )
@@ -771,6 +786,7 @@ def addFollower(user):
    global username
 
    if not isFollowing(user, username):
+      notifyUser(user, "listener", username)
       db_conn.execute("INSERT INTO listeners VALUES (?, ?)", (username, user))
       conn.commit()
    
@@ -998,7 +1014,7 @@ def insertTweet(formFields):
    db_conn.execute("INSERT INTO bleats VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values);
    conn.commit()
 
-   # insert referenced ('@'ed) users to database
+   # insert referenced ('@'ed) users to database and notify users
    explodedTweet = newTweet.split(' ')
    newBleatUsers = []
    for word in explodedTweet:
@@ -1007,9 +1023,121 @@ def insertTweet(formFields):
    newBleatUsers = list(set(newBleatUsers))  #remove dulpicates
    if newBleatUsers:
       for user in newBleatUsers:
-         user = user[1:]
+         user = user[1:] # remove '@' symbol
          if validUser(user, True):
+            if inReplyTo:
+               if user == bleatToUser(inReplyTo):
+                  notifyUser(user, "reply", bleat_id)
+            else:
+               notifyUser(user, "mentioned", bleat_id)
             db_conn.execute("INSERT INTO reply_to VALUES (?, ?)", (bleat_id, user));
+
+def notifyUser(user, notifyType, target):
+   db_conn.execute('SELECT * FROM users WHERE lower(username)=(?)', (user.lower(), ))
+   result = db_conn.fetchone()
+   email = result['email']
+   if notifyType == "reply":
+      if result['notify_reply'] == "selected":
+         notifyReplyEmail(email, target)
+   elif notifyType == "mentioned":
+      if result['notify_mention'] == "selected":
+         notifyMentionEmail(email, target)
+   elif notifyType == "listener":
+      if result['notify_listen'] == "selected":
+         notifyListenerEmail(email, target)
+
+def notifyReplyEmail(email, bleat_id):
+   # Create message container - the correct MIME type is multipart/alternative.
+   msg = MIMEMultipart('alternative')
+   msg['Subject'] = "Somebody replied to your bleet!"
+   msg['From'] = EMAIL_FROM
+   msg['To'] = email
+   bleat_addr = BASE_URL+"?page=bleat_page&bleat_id="+str(bleat_id)
+
+   # Create the body of the message (a plain-text and an HTML version).
+   text = "Hi!\nSomebody replied to your bleet!\nFollow the link below to see the reply\n%s" % (bleat_addr, )
+   html = """\
+   <html>
+     <head></head>
+     <body>
+       <p>Hi!<br>
+          Somebody replied to your bleet!<br>
+          <a href="%s">Click here</a> to view the bleet.<br>
+       </p>
+     </body>
+   </html>
+   """ % (bleat_addr, )
+   # Record the MIME types of both parts - text/plain and text/html.
+   part1 = MIMEText(text, 'plain')
+   part2 = MIMEText(html, 'html')
+
+   # Attach parts into message container.
+   # the HTML message, is best and preferred.
+   msg.attach(part1)
+   msg.attach(part2)
+   sendEmail(email, msg)
+
+def notifyMentionEmail(email, bleat_id):
+   # Create message container - the correct MIME type is multipart/alternative.
+   msg = MIMEMultipart('alternative')
+   msg['Subject'] = "Somebody mentioned you in their bleet!"
+   msg['From'] = EMAIL_FROM
+   msg['To'] = email
+   bleat_addr = BASE_URL+"?page=bleat_page&bleat_id="+str(bleat_id)
+
+   # Create the body of the message (a plain-text and an HTML version).
+   text = "Hi!\nSomebody mentioned you in their bleet!\nFollow the link below to see the bleet\n%s" % (bleat_addr, )
+   html = """\
+   <html>
+     <head></head>
+     <body>
+       <p>Hi!<br>
+          Somebody mentioned you in their bleet!<br>
+          <a href="%s">Click here</a> to view the bleet.<br>
+       </p>
+     </body>
+   </html>
+   """ % (bleat_addr, )
+   # Record the MIME types of both parts - text/plain and text/html.
+   part1 = MIMEText(text, 'plain')
+   part2 = MIMEText(html, 'html')
+
+   # Attach parts into message container.
+   # the HTML message, is best and preferred.
+   msg.attach(part1)
+   msg.attach(part2)
+   sendEmail(email, msg)
+
+def notifyListenerEmail(email, username):
+   # Create message container - the correct MIME type is multipart/alternative.
+   msg = MIMEMultipart('alternative')
+   msg['Subject'] = "You have a new follower!"
+   msg['From'] = EMAIL_FROM
+   msg['To'] = email
+   addr = BASE_URL+"?page=user_page&user="+username
+
+   # Create the body of the message (a plain-text and an HTML version).
+   text = "Hi!\n%s is now following you!\nFollow the link below to see their bleets\n%s" % (username, addr)
+   html = """\
+   <html>
+     <head></head>
+     <body>
+       <p>Hi!<br>
+          %s is now following you!<br>
+          <a href="%s">Click here</a> to view their bleets.<br>
+       </p>
+     </body>
+   </html>
+   """ % (username, addr)
+   # Record the MIME types of both parts - text/plain and text/html.
+   part1 = MIMEText(text, 'plain')
+   part2 = MIMEText(html, 'html')
+
+   # Attach parts into message container.
+   # the HTML message, is best and preferred.
+   msg.attach(part1)
+   msg.attach(part2)
+   sendEmail(email, msg)
 
 def deleteBleat(bleat_id):
    db_conn.execute('SELECT * FROM bleats WHERE bleat_id=(?)', (bleat_id, ))
@@ -1106,12 +1234,8 @@ def resetPassword(new_pass, forgot_id):
    db_conn.execute("SELECT * FROM forgot WHERE forgot_id=(?)", (forgot_id, ))
    conn.commit()
    result = db_conn.fetchone()
-   print headers
-   print
    if result:
       user = result['username']
-      print user
-      print result
       db_conn.execute("DELETE FROM forgot WHERE forgot_id=(?)", (forgot_id, ))
       conn.commit()
       hashpw = hashlib.md5(new_pass).hexdigest() #hash password

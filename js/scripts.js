@@ -82,6 +82,14 @@ $('document').ready(function(){
      }
    });
 
+   $('.btn-load').on("click", function() {
+      if ($(this).text() == 'Loading...') {
+         event.preventDefault();  // not a complete fix... but its a start
+                                  // doesn't handle locations where button's are just wrapped within links
+      }
+      $(this).text('Loading...');
+   });
+
 
 });
 

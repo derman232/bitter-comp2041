@@ -40,6 +40,9 @@ def createTables():
    home_longitude  REAL,
    description     TEXT,
    bg_pic          TEXT,
+   notify_mention  TEXT,
+   notify_reply    TEXT,
+   notify_listen   TEXT,
    suspended       TEXT)''')
    c.execute('''CREATE TABLE listeners (
    username        TEXT,
@@ -173,9 +176,12 @@ for a in glob.glob(USER_DIR+"*"):
       userDict['home_longitude'],
       ''                        , #empty description
       DEFAULT_BG                , # default backgorund pic
+      'selected'                , #notifications enabled by default
+      'selected'                , #notifications enabled by default
+      'selected'                , #notifications enabled by default
       ''                          # not suspended
    )
-   c.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
+   c.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
 
    for line in userDict['listens'].split():
       values = (

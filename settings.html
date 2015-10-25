@@ -47,6 +47,27 @@
                <label for="email" class="settings-control-label">Email</label><input id="email" class="form-control settings-inputs" name="email" type="text" value="{{ myDetails|email }}">
                {{ errorMsgs|email }}
                <br><br>
+               <div class="settings-checkboxes">
+               {% if myDetails|notify_mention %}
+                  <label for="notify_mention" class="settings-control-label">Notifications</label><input id="notify_mention" class="" name="notify_mention" type="checkbox" value="selected" checked>&nbsp;When mentioned<br>
+               {% else %}
+                  <label for="notify_mention" class="settings-control-label">Notifications</label><input id="notify_mention" class="" name="notify_mention" type="checkbox" value="selected">&nbsp;When mentioned<br>
+               {% endif %}
+               </div><br>
+               <div class="settings-checkboxes">
+               {% if myDetails|notify_reply %}
+                  <label for="notify_reply" class="settings-control-label"></label><input id="notify_reply" class="" name="notify_reply" type="checkbox" value="selected" checked>&nbsp;When replied to<br>
+               {% else %}
+                  <label for="notify_reply" class="settings-control-label"></label><input id="notify_reply" class="" name="notify_reply" type="checkbox" value="selected">&nbsp;When replied to<br>
+               {% endif %}
+               </div><br>
+               <div class="settings-checkboxes">
+               {% if myDetails|notify_listen %}
+                  <label for="notify_listen" class="settings-control-label"></label><input id="notify_listen" class="" name="notify_listen" type="checkbox" value="selected" checked>&nbsp;When gaining a new listener<br>
+               {% else %}
+                  <label for="notify_listen" class="settings-control-label"></label><input id="notify_listen" class="" name="notify_listen" type="checkbox" value="selected">&nbsp;When gaining a new listener<br>
+               {% endif %}
+               </div><br>
                <label for="profile_pic" class="settings-control-label">Profile Picture</label>
                   <img class="settings-avatar" src="{{ myDetails|avatar }}"><br><br>
                   <label for="profile_pic" class="settings-control-label"></label><input id="profile_pic" class="form-control settings-inputs" name="profile_pic" type="file" value="">
