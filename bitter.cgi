@@ -1678,12 +1678,13 @@ print cookies.output()
 print
 print completeSite.convert(siteVariables)
 print page
-print username
-print sid
+if DEBUG:
+   print username
+   print sid
 
-search = form.getfirst("main-search", "")
-print search
-search = form.getfirst("search-txt", "")
-print search
+   search = form.getfirst("main-search", "")
+   print search
+   search = form.getfirst("search-txt", "")
+   print search
 
 print siteVariables
