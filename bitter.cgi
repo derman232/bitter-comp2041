@@ -267,7 +267,7 @@ def myDetails(username):
          siteVariables['myDetails']['view_description'] = result['description']
       else:
          siteVariables['myDetails']['description'] = ""
-         siteVariables['myDetails']['view_description'] = "You don't have a description :("
+         siteVariables['myDetails']['view_description'] = "<span class='grey-text'>No description :(</span>"
 
    db_conn.execute('SELECT COUNT(*) FROM bleats WHERE username=?', (username, ))
    siteVariables['myDetails']['bleats'] = db_conn.fetchone()[0]
@@ -1677,8 +1677,8 @@ print headers
 print cookies.output()
 print
 print completeSite.convert(siteVariables)
-print page
 if DEBUG:
+   print page
    print username
    print sid
 
