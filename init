@@ -1,0 +1,66 @@
+#!/usr/bin/python
+
+#script to setup tables if database doesn't exist
+#Derek Peczek
+
+import os
+import sqlite3
+
+DB_FILENAME = 'bitter.db'
+
+def createTables():
+   c.execute('''CREATE TABLE users (
+   email           TEXT,
+   full_name       TEXT,
+   password        TEXT,
+   username        TEXT PRIMARY KEY,
+   home_latitude   REAL,
+   home_suburb     TEXT,
+   profile_pic     TEXT,
+   home_longitude  REAL,
+   description     TEXT,
+   bg_pic          TEXT,
+   notify_mention  TEXT,
+   notify_reply    TEXT,
+   notify_listen   TEXT,
+   suspended       TEXT)''')
+   c.execute('''CREATE TABLE listeners (
+   username        TEXT,
+   listens         TEXT )''')
+   c.execute('''CREATE TABLE bleats (
+   bleat_id        INT PRIMARY KEY,
+   in_reply_to     TEXT,
+   username        TEXT,
+   longitude       REAL,
+   latitude        REAL,
+   hasLocation     INT , 
+   time            INT ,
+   files           INT ,
+   file_1          TEXT,
+   file_2          TEXT,
+   file_3          TEXT,
+   file_4          TEXT,
+   bleat           TEXT )''')
+   c.execute('''CREATE TABLE reply_to (
+   bleat_id        INT ,
+   username        TEXT )''')
+   c.execute('''CREATE TABLE sessions (
+   username        TEXT,
+   sid             TEXT )''')
+   c.execute('''CREATE TABLE verify (
+   username        TEXT,
+   verify_id       TEXT )''')
+   c.execute('''CREATE TABLE forgot (
+   username        TEXT,
+   forgot_id       TEXT )''')
+
+db_exists = os.path.exists(DB_FILENAME)
+if not db_exists:
+   conn = sqlite3.connect(DB_FILENAME)
+   c = conn.cursor()
+   createTables()
+   conn.commit()
+   conn.close()
+   os.chmod(DB_FILENAME, 0755)
+else:
+   print "All good, we found the database"
