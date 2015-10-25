@@ -1667,7 +1667,7 @@ if page != "error":
 
 
 # process relevant page
-filename = page+".html"
+filename = "templates/"+page+".html"
 site = open(filename, "r").read()
 parser = ParseSite(site)
 completeSite = parser.processTokens() #returns a SiteNodes group

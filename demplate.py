@@ -24,6 +24,7 @@ START_TAG  = "{%"
 END_TAG    = "%}"
 START_COM  = "{#"
 END_COM    = "#}"
+BASE_FOLDER = "templates/"
 siteTokens = map(re.escape, (START_VAR, END_VAR, START_TAG, END_TAG, START_COM, END_COM))
 metaChars  = re.compile(r'('+'|'.join(siteTokens)+')')
 
@@ -186,7 +187,7 @@ class IncludeNode:
       self.include_site = site
    def convert(self, values):
       # open and parse new site
-      childSite = open(self.include_site, "r").read()
+      childSite = open(BASE_FOLDER + self.include_site, "r").read()
       childParse = ParseSite(childSite)
       completeChildSite = childParse.processTokens()
       return completeChildSite.convert(values)
