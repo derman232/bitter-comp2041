@@ -455,7 +455,7 @@ def validBleat(bleat_id):
    try:
       bleat_id = db_conn.fetchone()['bleat_id']
    except:
-      bleaet_id = None
+      bleat_id = None
    if bleat_id:
       return bleat_id
    return None
@@ -1323,6 +1323,49 @@ def suspendAccount():
    db_conn.execute("UPDATE users SET suspended=(?) WHERE lower(username)=(?)", ("suspended", username.lower()))
    conn.commit()
 
+def deleteAccount(user):
+   # get & delete bleets
+   myBleets = []
+   db_conn.execute("SELECT * FROM bleats WHERE lower(username)=(?)", (user, ))
+   for row in db_conn:
+      deleteBleat(str(row['bleat_id']))
+   conn.commit()
+
+   # remove listens to and by
+   db_conn.execute("DELETE FROM listeners WHERE username=(?) OR listens=(?)", (user, user))
+   conn.commit()
+
+   # remove replies
+   db_conn.execute("DELETE FROM reply_to WHERE username=(?)", (user, ))
+   conn.commit()
+
+   #cleanup sessions, verify, forgot (if these are lurking around ..)
+   db_conn.execute("DELETE FROM sessions WHERE username=(?)", (user, ))
+   conn.commit()
+   db_conn.execute("DELETE FROM verify WHERE username=(?)", (user, ))
+   conn.commit()
+   db_conn.execute("DELETE FROM forgot WHERE username=(?)", (user, ))
+   conn.commit()
+
+   # delete files
+   db_conn.execute("SELECT profile_pic, bg_pic FROM users WHERE lower(username)=(?)", (user, ))
+   result = db_conn.fetchone()
+   if result:
+      # error handling if image is link to cs server
+      try:
+         os.remove(result['profile_pic'])
+      except:
+         pass
+      try:
+         os.remove(result['bg_pic'])
+      except:
+         pass
+
+   # delete user 
+   db_conn.execute("DELETE FROM users WHERE username=(?)", (user, ))
+   conn.commit()
+
+
 def reactivateAccount():
    global username
    global headers
@@ -1449,6 +1492,12 @@ if page != "error":
       doLogout()
       headers = "Content-Type: text/html"
       page = "suspend_acc"
+   elif page == "delete_acc":
+      user = username
+      doLogout()
+      deleteAccount(user)
+      headers = "Content-Type: text/html"
+      page = "delete_acc"
    elif page == "reactivate":
       reactivateAccount()
    elif page == "set_new_pass":
@@ -1528,16 +1577,17 @@ if page != "error":
    elif page == "user_page":
       targetUser = form.getfirst("user", "")
       targetUser = validUser(targetUser)
-      if not activeAccount(targetUser):
-         targetUser = None
       if targetUser != None:
-         myDetails(targetUser)
-         getUserBleats(targetUser)
-         siteVariables['loggedin_user'] = False
-         siteVariables['following'] = False
-         if checkSession():
-            siteVariables['loggedin_user'] = bool(username == targetUser)
-            siteVariables['following'] = isFollowing(targetUser)
+         if activeAccount(targetUser):
+            myDetails(targetUser)
+            getUserBleats(targetUser)
+            siteVariables['loggedin_user'] = False
+            siteVariables['following'] = False
+            if checkSession():
+               siteVariables['loggedin_user'] = bool(username == targetUser)
+               siteVariables['following'] = isFollowing(targetUser)
+         else:
+            targetUser = None
       else:
          headers = "Location: ?page=feed"
          page = "feed"
