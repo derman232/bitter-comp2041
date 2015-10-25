@@ -8,12 +8,10 @@
 <script src="bootstrap/js/bootstrap.min.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBLtOAK5mkzR8Kuu3zWokYW5mDSwZHChTw&libraries=places&callback=initAutocomplete" async defer></script>
 
-<body class="clear-background">
+<body class="large-header-background" style="background: url({{ myDetails|bg_pic }}) repeat 0 50px;">
 
-<div class="nav-no-margin">
 {% include (loggedin_header.html) %}
-</div>
-<div class="large-header-background" style="background: url({{ myDetails|bg_pic }}) repeat center;">
+<div class="">
 
       <div class="col-md-3"></div>
       <div class="feed-tweets col-md-6">

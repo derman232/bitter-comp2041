@@ -8,7 +8,7 @@
             <img class="bleet-avatar" src="{{ row|profile_pic }}">
          </div>
          <div class="search-avatar-text">
-            <b>{{ row|full_name }}</b><br><span class="grey-text">(@{{ row|username }})</span><br>
+            <b><a href="?page=user_page&user={{ row|username }}">{{ row|full_name }}</a></b><br><span class="grey-text">(@{{ row|username }})</span><br>
          </div><br>
          <span class="grey-text small-text">{{ row|description }}</span><br>
          {% if row|following is True %}

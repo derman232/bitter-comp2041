@@ -221,14 +221,14 @@ def matchingUsers(searchString, matches=None):
    global username
    global siteVariables
 
-   selectString = "SELECT full_name, description, username, profile_pic, bg_pic FROM users WHERE lower(username) LIKE (?) AND suspended <> 'suspended' LIMIT (?) OFFSET (?)"
+   selectString = "SELECT full_name, description, username, profile_pic, bg_pic FROM users WHERE lower(username) LIKE (?) OR lower(full_name) LIKE (?) AND suspended <> 'suspended' LIMIT (?) OFFSET (?)"
 
    if matches is None:
       startNum, endNum = getPage()
-      db_conn.execute(selectString, (searchString, NUM_RESULTS, startNum))
+      db_conn.execute(selectString, (searchString, searchString, NUM_RESULTS, startNum))
    else:
       startNum = 0
-      db_conn.execute(selectString, (searchString, PREVIEW_RESULTS+1, startNum))
+      db_conn.execute(selectString, (searchString, searchString, PREVIEW_RESULTS+1, startNum))
 
    rows = []
    for row in db_conn:
@@ -738,7 +738,7 @@ def addNewUser(formFields):
    # set background pic
    try:
       if formFields['bg_pic'].filename:
-         bg_pic = uploadFile(formFields['bg_pic'], "profile", formFields['new_user'])
+         bg_pic = uploadFile(formFields['bg_pic'], "background", formFields['new_user'])
    except:
       pass
 
@@ -783,7 +783,7 @@ def updateNewUser(formFields):
          # set background pic
          try:
             if formFields['bg_pic'].filename:
-               bg_pic = uploadFile(formFields['bg_pic'], "profile", formFields['new_user'])
+               bg_pic = uploadFile(formFields['bg_pic'], "background", formFields['new_user'])
                toUpdate['bg_pic'] = bg_pic
          except:
             pass
