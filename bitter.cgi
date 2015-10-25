@@ -45,6 +45,7 @@ EMAIL_FROM = "bittercs204115s2@gmail.com"
 EMAIL_PASS = "Bitter2041"
 CLEAN_UP_RE = r"(<[^>]*>)"
 VALID_TAG_RE = r"</?[b|i|u]>"
+TIME_OFFSET = 60*60*21 # obviously php is king here.
 
 BASE_URL = os.environ.get('SCRIPT_URI')
 if BASE_URL == None:
@@ -212,7 +213,8 @@ def doLogout():
 
 
 def convertTime(targetTime):
-   convertedTime = time.strftime('%m/%d/%Y %H:%M:%S',  time.gmtime(targetTime))
+   targetTime = targetTime + TIME_OFFSET
+   convertedTime = time.strftime('%I:%M %p - %d %b %Y',  time.gmtime(targetTime))
    return convertedTime
 
 def matchingUsers(searchString, matches=None):
