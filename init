@@ -7,6 +7,7 @@ import os
 import sqlite3
 
 DB_FILENAME = 'bitter.db'
+USER_IMG_FOLDER = 'userimg'
 
 def createTables():
    c.execute('''CREATE TABLE users (
@@ -54,8 +55,7 @@ def createTables():
    username        TEXT,
    forgot_id       TEXT )''')
 
-db_exists = os.path.exists(DB_FILENAME)
-if not db_exists:
+if not os.path.exists(DB_FILENAME):
    conn = sqlite3.connect(DB_FILENAME)
    c = conn.cursor()
    createTables()
@@ -65,5 +65,8 @@ if not db_exists:
 else:
    print "All good, we found the database"
 
+if not os.path.exists(USER_IMG_FOLDER):
+   os.makedirs(USER_IMG_FOLDER)
+
 print "set permisssions on .htaccess file just to be safe"
-os.chmod(".htacces", 755)
+os.chmod(".htaccess", 0755)
