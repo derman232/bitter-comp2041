@@ -54,7 +54,7 @@ if BASE_URL == None:
 # get params
 form = cgi.FieldStorage()
 
-# setup globals (TODO we'll see if this is necessary)
+# setup site / user globals
 username = ""
 password = ""
 page = "home"
@@ -81,6 +81,12 @@ try:
 except KeyError:
    page = "home"
 
+def isNumber(n):
+   try:
+      float(n)
+      return True
+   except ValueError:
+      return False
 
 # session creation adapted from 
 # http://code.activestate.com/recipes/325484-a-very-simple-session-handling-example/
@@ -98,7 +104,6 @@ def doLogin():
    conn.commit()
    result = db_conn.fetchone()
    if result:
-      #page = "feed"
       username = result["username"]
       if isVerified(username):
          headers = "Location: ?page=feed"
@@ -164,16 +169,6 @@ def generateForgotHash(user):
    hashedString = hashlib.sha256(hashString).hexdigest()
    return hashedString
 
-def getUserEmail(user):
-   db_conn.execute('SELECT * FROM users WHERE lower(username)=?', (user.lower(), ))
-   conn.commit()
-   result = db_conn.fetchone()
-   if result:
-      passw = result['email']
-   else:
-      passw = None
-   return passw
-
 def checkSession():
    global username
    global page
@@ -219,7 +214,6 @@ def doLogout():
 def convertTime(targetTime):
    convertedTime = time.strftime('%m/%d/%Y %H:%M:%S',  time.gmtime(targetTime))
    return convertedTime
-
 
 def matchingUsers(searchString, matches=None):
    global username
@@ -353,6 +347,8 @@ def getManyBleats(bleat_ids):
    parseBleats()
 
 # recursively get all replies to a bleet
+# travels down the reply track as far as possible, then searches one level up
+# ( as many people can reply to one bleet creating multiple possible 'branches' )
 def getBleatReplies(bleat_id):
    bleatReplies = []
 
@@ -375,52 +371,10 @@ def getBleatReplies(bleat_id):
          break
       bleatReplies.append(bleat_id)
 
-#   print headers
-#   print
-#   print bleatReplies
-#   print bleat_id
-#
    return bleatReplies
 
-def searchBleats(searchString):
-   # if hashtag search
-   if re.match(KEYWORD_MATCH, searchString[1:-1]):
-      searchString = "% "+searchString[1:-1]+" %"
-      selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE (' ' || lower(bleat) || ' ') LIKE (?)"
-      selectString += " ORDER BY bleats.time DESC"
-   else:
-      # tweet search results
-      selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE lower(bleat) LIKE (?)"
-      selectString += " ORDER BY bleats.time DESC"
-
-   # set num results
-   startNum, endNum = getPage()
-   selectString += " LIMIT (?) OFFSET (?)"
-
-   db_conn.execute(selectString, (searchString, NUM_RESULTS, startNum))
-   # after retrieving, add these to the dictionary
-   parseBleats()
-
-def getPage():
-   global siteVariables
-   # get page number
-   num = form.getfirst("num", "0")
-   try:
-      num = int(num)
-   except:
-      num = 0
-   if num <= 0:
-      num = 0
-      siteVariables['prev_page'] = num
-   else:
-      siteVariables['prev_page'] = num-1
-
-   startNum = num*NUM_RESULTS
-   endNum   = (num+1)*NUM_RESULTS
-   siteVariables['next_page'] = num+1
-   return startNum, endNum
-
-
+# put bleets into dictionary for outputting
+# requires pre-existing database connection
 def parseBleats(singleBleat=False):
    global siteVariables
 
@@ -468,6 +422,44 @@ def processSearchString():
    searchString = "%"+searchString+"%"
    return searchString
 
+def searchBleats(searchString):
+   # if hashtag search, match EXACT results
+   if re.match(KEYWORD_MATCH, searchString[1:-1]):
+      searchString = "% "+searchString[1:-1]+" %"
+      selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE (' ' || lower(bleat) || ' ') LIKE (?)"
+      selectString += " ORDER BY bleats.time DESC"
+   else:
+      # tweet search results
+      selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE lower(bleat) LIKE (?)"
+      selectString += " ORDER BY bleats.time DESC"
+
+   # set num results
+   startNum, endNum = getPage()
+   selectString += " LIMIT (?) OFFSET (?)"
+
+   db_conn.execute(selectString, (searchString, NUM_RESULTS, startNum))
+   # after retrieving, add these to the dictionary
+   parseBleats()
+
+# get page number and set result count, for pagination
+def getPage():
+   global siteVariables
+   num = form.getfirst("num", "0")
+   try:
+      num = int(num)
+   except:
+      num = 0
+   if num <= 0:
+      num = 0
+      siteVariables['prev_page'] = num
+   else:
+      siteVariables['prev_page'] = num-1
+
+   startNum = num*NUM_RESULTS
+   endNum   = (num+1)*NUM_RESULTS
+   siteVariables['next_page'] = num+1
+   return startNum, endNum
+
 def validBleat(bleat_id):
    db_conn.execute('SELECT * FROM bleats WHERE bleat_id=(?)', (bleat_id, ))
    try:
@@ -482,8 +474,6 @@ def bleatToUser(bleat_id):
    db_conn.execute('SELECT * FROM bleats WHERE bleat_id=(?)', (bleat_id, ))
    user = db_conn.fetchone()['username']
    return user
-
-
 
 def validUser(username, caseSensitive=False):
    if caseSensitive:
@@ -508,12 +498,15 @@ def existingEmail(email):
       return email
    return None
 
-def isNumber(n):
-   try:
-      float(n)
-      return True
-   except ValueError:
-      return False
+def getUserEmail(user):
+   db_conn.execute('SELECT * FROM users WHERE lower(username)=?', (user.lower(), ))
+   conn.commit()
+   result = db_conn.fetchone()
+   if result:
+      passw = result['email']
+   else:
+      passw = None
+   return passw
 
 def validUsername(username):
    return bool(re.match(r'^[a-zA-Z0-9_]{1,30}$', username))
@@ -527,7 +520,33 @@ def validEmail(email):
    # http://stackoverflow.com/questions/201323/using-a-regular-expression-to-validate-an-email-address
    return bool(re.match(r'[^@]+@[^@]+\.[^@]+', email))
 
+# validates background / display pictures
+def checkImage(curPic):
+   errorMsg = ''
+   valid = True
+   try:
+      if curPic.filename:
+         # check if file is right type
+         extension = curPic.filename.rsplit('.', 1)[-1]
+         if curPic.type not in VALID_MIME_IMAGES:
+            valid = False
+            errorMsg = 'Enter a valid filetype. (.jpeg, .jpg, .png)'
+         elif extension not in VALID_FILE_EXTS:
+            valid = False
+            errorMsg = 'Enter a valid filetype. (.jpeg, .jpg, .png)'
+         return valid, errorMsg
 
+         # check if file is too big
+         fileSize = len(curPic.value)
+         if fileSize > MAX_FILE_SIZE:
+            valid = False
+            errorMsg = 'Profile picture cannot be larger than '+MAX_FILE_SIZE_STR
+            return valid, errorMsg
+   except AttributeError:
+      pass
+   return valid, errorMsg
+
+# retrieve fields from  settings & sign up pages
 def getNewUserFormFields ():
    global siteVariables
    formFields = {
@@ -558,32 +577,8 @@ def getNewUserFormFields ():
    siteVariables['formFields'] = formFields
    return formFields
 
-def checkImage(curPic):
-   errorMsg = ''
-   valid = True
-   try:
-      if curPic.filename:
-         # check if file is right type
-         extension = curPic.filename.rsplit('.', 1)[-1]
-         if curPic.type not in VALID_MIME_IMAGES:
-            valid = False
-            errorMsg = 'Enter a valid filetype. (.jpeg, .jpg, .png)'
-         elif extension not in VALID_FILE_EXTS:
-            valid = False
-            errorMsg = 'Enter a valid filetype. (.jpeg, .jpg, .png)'
-         return valid, errorMsg
-
-         # check if file is too big
-         fileSize = len(curPic.value)
-         if fileSize > MAX_FILE_SIZE:
-            valid = False
-            errorMsg = 'Profile picture cannot be larger than '+MAX_FILE_SIZE_STR
-            return valid, errorMsg
-   except AttributeError:
-      pass
-   return valid, errorMsg
-
 # validates new user form, and settings form
+# uses result form getNewUserFormFields()
 def processNewUserForm (formFields, settings=False, emptyErrors=False):
    global siteVariables
    valid = True
@@ -694,6 +689,7 @@ def processNewUserForm (formFields, settings=False, emptyErrors=False):
    siteVariables['errorMsgs'] = errorMsgs
    return valid
 
+# upload display pic / background pic
 def uploadFile(curFile, fileStyle, username):
    extension = curFile.filename.rsplit('.', 1)[-1]
    if fileStyle == "profile":
@@ -708,6 +704,7 @@ def uploadFile(curFile, fileStyle, username):
       return DEFAULT_PIC
    return filename
 
+# upload bleet attachments
 def uploadAttachment(curFile, attachmentNum, bleat_id):
    extension = curFile.filename.rsplit('.', 1)[-1]
    filename = str(bleat_id)+"_"+str(attachmentNum)+"."+extension
@@ -720,6 +717,7 @@ def uploadAttachment(curFile, attachmentNum, bleat_id):
       pass
    return filename
 
+# insert new user
 def addNewUser(formFields):
    # hash password
    formFields['new_pass'] = hashlib.md5(formFields['new_pass']).hexdigest() #hash password
@@ -765,6 +763,7 @@ def addNewUser(formFields):
    conn.commit()
    newUserEmail(formFields['email'], verify_id)
 
+# update user settings
 def updateNewUser(formFields):
    global username
 
@@ -835,7 +834,6 @@ def updateNewUser(formFields):
          conn.commit()
          updateEmailEmail(toUpdate['email'], verify_id)
 
-
 def isFollowing(target, user=None):
    global username
 
@@ -860,6 +858,7 @@ def removeFollower(user):
    db_conn.execute("DELETE FROM listeners WHERE username=(?) AND listens=(?)", (username, user))
    conn.commit()
 
+# get fields for bleet insertion
 def getTweetFields():
    global siteVariables
 
@@ -878,7 +877,8 @@ def getTweetFields():
    siteVariables['formFields'] = formFields
    return formFields
 
-
+# validate fields for tweet isertion
+# use after getTweetFields()
 # note in real twitter, following content rules apply
 # Maximum image size is 5MB and maximum video size is 15MB.
 # You may include up to 4 photos or 1 animated GIF or 1 video in a Tweet.
@@ -960,6 +960,7 @@ def validateTweetFields(formFields, emptyErrors=False):
    siteVariables['errorMsgs'] = errorMsgs
    return valid
 
+# get largest bleet id
 def getHighestId():
    db_conn.execute('SELECT MAX(bleat_id) FROM bleats')
    try:
@@ -967,6 +968,7 @@ def getHighestId():
    except:
       return 0
 
+# cleanup html
 def cleanUpText(text, noTags=False):
    words = re.split(CLEAN_UP_RE, text)
    cleanWords = []
@@ -986,6 +988,7 @@ def cleanUpText(text, noTags=False):
       text = " "
    return text
 
+# tweet insert
 def insertTweet(formFields):
    global username
    newTweet   = formFields['new-tweet']
@@ -999,6 +1002,7 @@ def insertTweet(formFields):
    # cleanup tweet
    newTweet = cleanUpText(newTweet)
 
+   # increment highest id
    bleat_id = getHighestId() + 1
 
    # upload images
@@ -1067,6 +1071,7 @@ def insertTweet(formFields):
                notifyUser(user, "mentioned", bleat_id)
             db_conn.execute("INSERT INTO reply_to VALUES (?, ?)", (bleat_id, user));
 
+# notifications
 def notifyUser(user, notifyType, target):
    db_conn.execute('SELECT * FROM users WHERE lower(username)=(?)', (user.lower(), ))
    result = db_conn.fetchone()
@@ -1176,35 +1181,6 @@ def notifyListenerEmail(email, username):
    msg.attach(part2)
    sendEmail(email, msg)
 
-def findReplies(bleat_id):
-   db_conn.execute('SELECT * FROM bleats WHERE in_reply_to=(?)', (bleat_id, ))
-   bleets = []
-   for row in db_conn:
-      bleets.append(row['bleat_id'])
-   return bleets
-
-def deleteBleat(bleat_id):
-   db_conn.execute('SELECT * FROM bleats WHERE bleat_id=(?)', (bleat_id, ))
-   result = db_conn.fetchone()
-   if not result:
-      return
-
-   #clear 'in_reply_to' on higher up bleets
-   replies = findReplies(bleat_id)
-   for reply in replies:
-      db_conn.execute("UPDATE bleats SET in_reply_to=(?) WHERE bleat_id=(?)", ('', reply))
-      conn.commit()
-      
-   #delete files
-   files = int(result['files'])
-   for fileNum in xrange(files):
-      key = "file_"+str(fileNum+1)
-      fileName = result[key]
-      os.remove(fileName)
-
-   db_conn.execute('DELETE FROM bleats WHERE bleat_id=(?)', (bleat_id, ))
-   conn.commit()
-
 def newUserEmail(email, verify_id):
    # Create message container - the correct MIME type is multipart/alternative.
    msg = MIMEMultipart('alternative')
@@ -1310,6 +1286,44 @@ def sendForgotEmail(user, forgot_id):
    msg.attach(part2)
    sendEmail(email, msg)
 
+def sendEmail(target, msg):
+   s = smtplib.SMTP(EMAIL_HOST)
+   s.starttls()
+   s.login(EMAIL_FROM,EMAIL_PASS)
+
+   # and message to send - here it is sent as one string.
+   s.sendmail(EMAIL_FROM, target, msg.as_string())
+   s.quit()
+
+def findReplies(bleat_id):
+   db_conn.execute('SELECT * FROM bleats WHERE in_reply_to=(?)', (bleat_id, ))
+   bleets = []
+   for row in db_conn:
+      bleets.append(row['bleat_id'])
+   return bleets
+
+def deleteBleat(bleat_id):
+   db_conn.execute('SELECT * FROM bleats WHERE bleat_id=(?)', (bleat_id, ))
+   result = db_conn.fetchone()
+   if not result:
+      return
+
+   #clear 'in_reply_to' on higher up bleets
+   replies = findReplies(bleat_id)
+   for reply in replies:
+      db_conn.execute("UPDATE bleats SET in_reply_to=(?) WHERE bleat_id=(?)", ('', reply))
+      conn.commit()
+      
+   #delete files
+   files = int(result['files'])
+   for fileNum in xrange(files):
+      key = "file_"+str(fileNum+1)
+      fileName = result[key]
+      os.remove(fileName)
+
+   db_conn.execute('DELETE FROM bleats WHERE bleat_id=(?)', (bleat_id, ))
+   conn.commit()
+
 def suspendAccount():
    global username
    db_conn.execute("UPDATE users SET suspended=(?) WHERE lower(username)=(?)", ("suspended", username.lower()))
@@ -1377,15 +1391,6 @@ def activeAccount(user):
       else:
          return True
 
-def sendEmail(target, msg):
-   s = smtplib.SMTP(EMAIL_HOST)
-   s.starttls()
-   s.login(EMAIL_FROM,EMAIL_PASS)
-
-   # and message to send - here it is sent as one string.
-   s.sendmail(EMAIL_FROM, target, msg.as_string())
-   s.quit()
-
 def resetPassword(new_pass, forgot_id):
    # check if forgot id is valid and get username if it is
    db_conn.execute("SELECT * FROM forgot WHERE forgot_id=(?)", (forgot_id, ))
@@ -1452,8 +1457,6 @@ else:
    page = "error"
 
 
-
-
 # handle page creation, feed population etc.
 if page != "error":
    # setup empty global sitevars
@@ -1495,7 +1498,6 @@ if page != "error":
          else:
             headers = "Location: ?page=feed&msg_type=1&msg=True&user=" + follow_user
             page = "feed"
-
       elif page == "delete":
          targetBleat = form.getfirst("bleat_id", "")
          targetBleat = validBleat(targetBleat)
