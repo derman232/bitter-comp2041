@@ -61,6 +61,6 @@ if not db_exists:
    createTables()
    conn.commit()
    conn.close()
-   os.chmod(DB_FILENAME, 0755)
+   os.chmod(DB_FILENAME, 0700)
 else:
    print "All good, we found the database"
