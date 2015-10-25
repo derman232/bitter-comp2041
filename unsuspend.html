@@ -1,0 +1,36 @@
+<html>
+<head><title>Bitter</title></head>
+<link rel="stylesheet" type="text/css" href="bootstrap/css/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="css/styles.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+<script src="js/scripts.js"></script>
+<script src="js/maps.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBLtOAK5mkzR8Kuu3zWokYW5mDSwZHChTw&libraries=places&callback=initAutocomplete" async defer></script>
+
+<body class="clear-background">
+{% include (loggedout_header.html) %}
+
+<div class="feed-wrapper row">
+   <div class="feed-trends col-md-3">
+   </div>
+   <div class="feed-tweets col-md-6">
+      <div class="panel panel-default suggestions-panel">
+         <div class="panel-heading">
+            <h3 class="panel-title">Reactivate your account</h3>
+         </div>
+         <div class="panel-body">
+            Your account is currently suspended<br>
+            <a href="?page=reactivate">Click here</a> to reactivate your account. <br><br>
+            <a href="?page=logout">Click here</a> to logout and return home.
+         </div>
+      </div>
+   </div>
+   <div class="feed-trends col-md-3">
+   </div>
+
+
+   </div>
+</div>
+
+</body>
+</html>

@@ -3,8 +3,9 @@
 <link rel="stylesheet" type="text/css" href="bootstrap/css/bootstrap.css">
 <link rel="stylesheet" type="text/css" href="css/styles.css">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-<script src="js/scripts.js"></script>
+<script src="bootstrap/js/bootstrap.min.js"></script>
 <script src="js/maps.js"></script>
+<script src="js/scripts.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBLtOAK5mkzR8Kuu3zWokYW5mDSwZHChTw&libraries=places&callback=initAutocomplete" async defer></script>
 
 <body class="clear-background">
@@ -44,7 +45,7 @@
                <label for="description" class="settings-control-label">Description</label><textarea id="description" rows="4" class="form-control settings-inputs" name="description" type="text" value="" placeholder="Type in a few words about yourself">{{ myDetails|description }}</textarea>
                {{ errorMsgs|description }}
                <br><br>
-               <label for="email" class="settings-control-label">Email</label><input id="email" class="form-control settings-inputs" name="email" type="text" value="{{ myDetails|email }}">
+               <label for="email" class="settings-control-label">Email</label><input id="email" class="form-control settings-inputs" name="email" type="text" value="{{ myDetails|email }}" data-toggle="tooltip" data-placement="top" title="If you change your email address, you will be required to verify it before you can log in again".>
                {{ errorMsgs|email }}
                <br><br>
                <div class="settings-checkboxes">
@@ -86,12 +87,12 @@
                <input type="hidden" name="home_long" id="home_long" value="{{ myDetails|home_longitude }}">
                <br>
                {{ errorMsgs|location }}
-
-               <label for="suspend-btn" class="settings-control-label"></label><button class="btn btn-warning" name="suspend-btn" id="suspend-btn" value="submit">Suspend Your Account</button><br><br>
-               <label for="delete-acc-btn" class="settings-control-label"></label><button class="btn btn-danger" name="delete-acc-btn" id="delete-acc-btn" value="submit">Delete Your Account</button>
+   
+               <label for="suspend-btn" class="settings-control-label"></label><button class="btn btn-warning" name="suspend-btn" id="suspend-btn">Suspend Your Account</button><br><br>
+               <label for="delete-acc-btn" class="settings-control-label"></label><button class="btn btn-danger" name="delete-acc-btn" id="delete-acc-btn">Delete Your Account</button>
                
                <br><br>
-               <button class="btn btn-primary sign_up-btn" name="settings-btn" id="settings-btn" value="submit">Update Settings</button>
+               <button class="btn btn-primary sign_up-btn btn-load" name="settings-btn" id="settings-btn" value="submit">Update Settings</button>
             </form>
 
 

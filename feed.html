@@ -52,6 +52,10 @@
                  </div>
                </div>
             </form>
+            {{ errorMsgs|new-tweet }}
+            {{ errorMsgs|tweet-location }}
+            {{ errorMsgs|tweet-media }}
+            {{ errorMsgs|in-reply-to }}
          </div>
          <div class="feed-pagination">
             <a href="?page=feed&num={{ prev_page }}"><button class="btn btn-primary" name="feed-prev" id="feed-prev">Prev</button></a>

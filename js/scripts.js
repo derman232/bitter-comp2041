@@ -6,20 +6,28 @@ $('document').ready(function(){
 
    // delete and suspension button confirmation
    $( "#suspend-btn" ).click(function() {
-      if (confirm('Are you sure you want to suspend your account?')) {
-          alert('Thanks for confirming');
-      } else {
-          alert('Why did you press cancel? You should have confirmed');
+      event.preventDefault();
+      if ($(this).text() != 'Loading...') {
+         if (confirm('Are you sure you want to suspend your account?')) {
+            $(this).text('Loading...');
+            window.location.href = "?page=suspend_acc";
+         } else {
+            $(this).text('Suspend Your Account');
+         }
       }
+
    });
    $( "#delete-acc-btn" ).click(function() {
-      if (confirm('Are you sure you want to DELETE your account? Note this cannot be undone.')) {
-          alert('Thanks for confirming');
-      } else {
-          alert('Why did you press cancel? You should have confirmed');
+      event.preventDefault();
+      if ($(this).text() != 'Loading...') {
+         if (confirm('Are you sure you want to DELETE your account? This action cannot be undone.')) {
+            $(this).text('Loading...');
+            window.location.href = "?page=delete_acc";
+         } else {
+            $(this).text('Delete Your Account');
+         }
       }
    });
-
 
 
    // hide / show feed page new tweet box
@@ -90,6 +98,9 @@ $('document').ready(function(){
       $(this).text('Loading...');
    });
 
+   $(function () {
+     $('[data-toggle="tooltip"]').tooltip()
+   })
 
 });
 

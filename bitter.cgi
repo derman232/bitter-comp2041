@@ -97,23 +97,24 @@ def doLogin():
       #page = "feed"
       username = result["username"]
       if isVerified(username):
-         headers = "Location: ?page=feed&num=0"
-         page = "feed"
+         headers = "Location: ?page=feed"
+         page = "home"
          createSession(username)
       else:
          headers = "Location: ?page=login_error&msg_type=2"
          page = "home"
-         username = password = ""
+         username = ""
+         password = ""
    else:
       headers = "Location: ?page=login_error&msg_type=1"
       page = "home"
-      username = password = ""
+      username = ""
+      password = ""
       
 def isVerified(username):
    db_conn.execute("SELECT * FROM verify WHERE lower(username)=(?)", (username.lower(), ))
    result = db_conn.fetchone()
    if result:
-      print result
       return False
    else:
       return True
@@ -160,7 +161,7 @@ def generateForgotHash(user):
    return hashedString
 
 def getUserEmail(user):
-   db_conn.execute('SELECT * FROM users WHERE lower(username)=?', (user, ))
+   db_conn.execute('SELECT * FROM users WHERE lower(username)=?', (user.lower(), ))
    conn.commit()
    result = db_conn.fetchone()
    if result:
@@ -171,6 +172,7 @@ def getUserEmail(user):
 
 def checkSession():
    global username
+   global page
    # check for magic cookie
    # http://webpython.codepoint.net/cgi_retrieve_the_cookie
    cookieString = os.environ.get('HTTP_COOKIE')
@@ -187,16 +189,28 @@ def checkSession():
    result = db_conn.fetchone()
    if result:
       username = result["username"]
+      # check if user is suspended
+      db_conn.execute('SELECT * FROM users WHERE username=?', (username, ))
+      conn.commit()
+      susResult = db_conn.fetchone()
+      if susResult and page != "reactivate":
+         suspended = susResult['suspended']
+         if suspended:
+            page = "unsuspend"
       return True
    return False
 
 def doLogout():
    global headers
+   global page
    if checkSession():
       sid = cookies['sid'].value
       sid = cookies['sid']['expires'] = -10
       db_conn.execute('DELETE FROM sessions WHERE sid=?', (sid, ))
       conn.commit()
+   headers = "Location: ?page=home"
+   page = "home"
+
 
 def convertTime(targetTime):
    convertedTime = time.strftime('%m/%d/%Y %H:%M:%S',  time.gmtime(targetTime))
@@ -207,7 +221,7 @@ def matchingUsers(searchString, matches=None):
    global username
    global siteVariables
 
-   selectString = "SELECT full_name, description, username, profile_pic, bg_pic FROM users WHERE lower(username) LIKE (?) LIMIT (?) OFFSET (?)"
+   selectString = "SELECT full_name, description, username, profile_pic, bg_pic FROM users WHERE lower(username) LIKE (?) AND suspended <> 'suspended' LIMIT (?) OFFSET (?)"
 
    if matches is None:
       startNum, endNum = getPage()
@@ -278,6 +292,9 @@ def getFeed():
       selectString += " OR bleats.bleat_id=(?)"
       listeners = listeners + (str(row['bleat_id']), )
 
+   # exclude suspended accounts
+   selectString += " AND users.suspended <> 'suspended'"
+
    # set order
    selectString += " ORDER BY bleats.time DESC"
 
@@ -318,6 +335,10 @@ def getManyBleats(bleat_ids):
    for bleat in bleat_ids:
       selectString += "bleats.bleat_id=(?) OR "
    selectString = selectString[:-4]
+
+   # exclude suspended accounts
+   selectString += " AND users.suspended <> 'suspended'"
+
    selectString += " ORDER BY bleats.time DESC"
 
    # set num results
@@ -332,9 +353,14 @@ def getBleatReplies(bleat_id):
    bleatReplies = []
    while True:
       selectString = "SELECT * FROM bleats INNER JOIN users ON bleats.username=users.username WHERE bleats.bleat_id=(?)"
+      # exclude suspended accounts
+      selectString += " AND users.suspended <> 'suspended'"
       db_conn.execute(selectString, (bleat_id, ))
-      bleat_id = db_conn.fetchone()['in_reply_to']
-      if not bleat_id:
+
+      bleat_id = db_conn.fetchone()
+      if bleat_id:
+         bleat_id = bleat_id['in_reply_to']
+      else:
          break
       bleatReplies.append(bleat_id)
    return bleatReplies
@@ -610,6 +636,7 @@ def processNewUserForm (formFields, settings=False, emptyErrors=False):
          errorMsgs['email'] = 'Please enter a valid email address'
    if not errorMsgs['email'] and email:
       if existingEmail(email):
+         valid = False
          errorMsgs['email'] = 'Email address already registered. <a href="?page=forgot">Reset your password?</a>'
          if settings:
             if email == siteVariables['myDetails']['email']:
@@ -718,6 +745,7 @@ def addNewUser(formFields):
 
 def updateNewUser(formFields):
    global username
+
    toUpdate = defaultdict(str)
    for key in formFields.keys():
       if key == 'profile_pic':
@@ -759,6 +787,9 @@ def updateNewUser(formFields):
       elif key == 'description': # description can be empty
          toUpdate['description'] = formFields['description']
 
+   # get email address before update
+   currentEmail = getUserEmail(username)
+
    updateStr = ''
    updateGroup = ()
 
@@ -771,6 +802,17 @@ def updateNewUser(formFields):
 
    db_conn.execute(updateStr, updateGroup)
    conn.commit()
+
+   # if new email address, need to re-verify
+   if toUpdate['email']:
+      if currentEmail != toUpdate['email']:
+         # get verifyId hash
+         verify_id = generateNewAccountHash(username, currentEmail+toUpdate['email'])
+         # add verify id to verify table
+         db_conn.execute("INSERT INTO verify VALUES (?, ?)", (username, verify_id))
+         conn.commit()
+         updateEmailEmail(toUpdate['email'], verify_id)
+
 
 def isFollowing(target, user=None):
    global username
@@ -819,13 +861,11 @@ elif all_search or (user_search and page == "user_search"):
       page = "home"
 elif page == "logout":
    doLogout()
-   headers = "Location: ?page=home"
-   page = "home"
 elif page == "home":
    if checkSession():
       headers = "Location: ?page=feed" #if logged in redirect to feed
       page = "feed"
-elif page == "feed" or (page == "settings" or update_settings) or page == "followme" or page == "unlisten" or new_tweet or page == "delete":
+elif page == "feed" or (page == "settings" or update_settings) or page == "followme" or page == "unlisten" or new_tweet or page == "delete" or page == "delete_acc" or page == "suspend_acc" or page == "reactivate":
    if not checkSession():
       headers = "Location: ?page=home" #if not logged in redirect home
       page = "home"
@@ -1026,8 +1066,11 @@ def insertTweet(formFields):
          user = user[1:] # remove '@' symbol
          if validUser(user, True):
             if inReplyTo:
-               if user == bleatToUser(inReplyTo):
+               replyUser = bleatToUser(inReplyTo)
+               if user == replyUser:
                   notifyUser(user, "reply", bleat_id)
+               else:
+                  notifyUser(user, "mentioned", bleat_id)
             else:
                notifyUser(user, "mentioned", bleat_id)
             db_conn.execute("INSERT INTO reply_to VALUES (?, ?)", (bleat_id, user));
@@ -1036,6 +1079,8 @@ def notifyUser(user, notifyType, target):
    db_conn.execute('SELECT * FROM users WHERE lower(username)=(?)', (user.lower(), ))
    result = db_conn.fetchone()
    email = result['email']
+   if result['suspended']:
+      return
    if notifyType == "reply":
       if result['notify_reply'] == "selected":
          notifyReplyEmail(email, target)
@@ -1179,7 +1224,40 @@ def newUserEmail(email, verify_id):
    msg.attach(part1)
    msg.attach(part2)
    sendEmail(email, msg)
-  
+
+def updateEmailEmail(email, verify_id):
+   # Create message container - the correct MIME type is multipart/alternative.
+   msg = MIMEMultipart('alternative')
+   msg['Subject'] = "Verify your updated Bitter Account email address"
+   msg['From'] = EMAIL_FROM
+   msg['To'] = email
+   verify_addr = BASE_URL+"?page=verify&verify_id="+verify_id
+
+   # Create the body of the message (a plain-text and an HTML version).
+   text = "Hi!\nYou've just changed the emaill address on your Bitter account. Please verify by following the link below. \n\n%s" % (verify_addr, )
+   html = """\
+   <html>
+     <head></head>
+     <body>
+       <p>Hi!<br>
+          You've jsut changed the email address for your Bitter account.<br>
+          Please verify it by following the link below
+          <a href="%s">Click here</a>
+          Thanks!
+       </p>
+     </body>
+   </html>
+   """ % (verify_addr, )
+   # Record the MIME types of both parts - text/plain and text/html.
+   part1 = MIMEText(text, 'plain')
+   part2 = MIMEText(html, 'html')
+
+   # Attach parts into message container.
+   # the HTML message, is best and preferred.
+   msg.attach(part1)
+   msg.attach(part2)
+   sendEmail(email, msg)
+
 def sendForgotEmail(user, forgot_id):
    # insert forgot id into database
    db_conn.execute("INSERT INTO forgot VALUES (?, ?)", (user, forgot_id))
@@ -1219,6 +1297,29 @@ def sendForgotEmail(user, forgot_id):
    msg.attach(part2)
    sendEmail(email, msg)
 
+def suspendAccount():
+   global username
+   db_conn.execute("UPDATE users SET suspended=(?) WHERE lower(username)=(?)", ("suspended", username.lower()))
+   conn.commit()
+
+def reactivateAccount():
+   global username
+   global headers
+   global page
+   db_conn.execute("UPDATE users SET suspended=(?) WHERE lower(username)=(?)", ("", username.lower()))
+   conn.commit()
+
+   headers = "Location: ?page=feed"
+   page = "home"
+
+def activeAccount(user):
+   db_conn.execute("SELECT suspended FROM users WHERE lower(username)=(?)", (user.lower(), ))
+   result = db_conn.fetchone()
+   if result:
+      if result['suspended']:
+         return False
+      else:
+         return True
 
 def sendEmail(target, msg):
    s = smtplib.SMTP(EMAIL_HOST)
@@ -1250,6 +1351,7 @@ if page != "error":
    siteVariables['message_txt'] = ''
 
    if page == "feed" or page == "settings" or page == "followme" or page == "unlisten" or page == "delete":
+      validateTweetFields({}, True)
       getFeed()
       myDetails(username)
       if page == "settings":
@@ -1321,6 +1423,13 @@ if page != "error":
          else:
             siteVariables['message'] = True
             siteVariables['message_txt'] = "Could not find a user by that username. Please try again later."
+   elif page == "suspend_acc":
+      suspendAccount()
+      doLogout()
+      headers = "Content-Type: text/html"
+      page = "suspend_acc"
+   elif page == "reactivate":
+      reactivateAccount()
    elif page == "set_new_pass":
       new_pass = form.getfirst("forgot_new_pass", "")
       forgot_id = form.getfirst("forgot_id", "")
@@ -1398,6 +1507,8 @@ if page != "error":
    elif page == "user_page":
       targetUser = form.getfirst("user", "")
       targetUser = validUser(targetUser)
+      if not activeAccount(targetUser):
+         targetUser = None
       if targetUser != None:
          myDetails(targetUser)
          getUserBleats(targetUser)
