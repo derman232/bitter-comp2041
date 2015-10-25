@@ -11,7 +11,7 @@ import sqlite3
 import re
 import hashlib
 
-CSE = False
+CSE = True
 
 if CSE:
    USER_DIR    = "/import/adams/2/z3459551/public_html/bitter/dataset-small/users/"

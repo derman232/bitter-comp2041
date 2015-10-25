@@ -654,7 +654,7 @@ def processNewUserForm (formFields, settings=False, emptyErrors=False):
          errorMsgs['email'] = 'Email address already registered. <a href="?page=forgot">Reset your password?</a>'
          if settings:
             if email == siteVariables['myDetails']['email']:
-               vaild = True
+               valid = True
                errorMsgs['email'] = ''
    # check image file things
    imgValid, errorMsgs['profile_pic'] = checkImage(profile_pic)
