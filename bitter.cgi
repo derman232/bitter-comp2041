@@ -12,9 +12,12 @@ import sys
 import sqlite3
 import time
 import re
+import smtplib
 from Cookie import SimpleCookie
 from demplate import *
 from collections import defaultdict
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 DB_NAME = "bitter.db"
 MAGIC_STRING = "sjdkfls243u892rjf" # for hashes
@@ -36,6 +39,11 @@ USER_MATCH = r'^@[a-zA-Z0-9_]{1,30}$'
 KEYWORD_MATCH = r'^#[a-zA-Z0-9_]*$'
 NUM_RESULTS = 10
 PREVIEW_RESULTS = 2
+EMAIL_HOST = 'smtp.gmail.com:587'
+EMAIL_FROM = "bittercs204115s2@gmail.com"
+EMAIL_PASS = "Bitter2041"
+BASE_URL = "http://localhost/~derek/bitter/"
+
 
 # get params
 form = cgi.FieldStorage()
@@ -85,9 +93,39 @@ def doLogin():
    result = db_conn.fetchone()
    if result:
       #page = "feed"
-      headers = "Location: ?page=feed&num=1"
       username = result["username"]
-      createSession(username)
+      if isVerified(username):
+         headers = "Location: ?page=feed&num=0"
+         page = "feed"
+         createSession(username)
+      else:
+         headers = "Location: ?page=login_error&msg_type=2"
+         page = "home"
+         username = password = ""
+   else:
+      headers = "Location: ?page=login_error&msg_type=1"
+      page = "home"
+      username = password = ""
+      
+def isVerified(username):
+   db_conn.execute("SELECT * FROM verify WHERE lower(username)=(?)", (username.lower(), ))
+   result = db_conn.fetchone()
+   if result:
+      print result
+      return False
+   else:
+      return True
+
+def verifyAccount(verify_id):
+   db_conn.execute("SELECT COUNT(*) FROM verify WHERE verify_id=(?)", (verify_id, ))
+   result = db_conn.fetchone()
+   if result:
+      numRows = int(result[0])
+      if numRows == 1:
+         db_conn.execute("DELETE FROM verify WHERE verify_id=(?)", (verify_id, ))
+         conn.commit()
+         return True
+   return False
 
 def createSession(username):
    global page
@@ -102,13 +140,32 @@ def generateHash():
    hashedString = hashlib.sha256(hashString).hexdigest()
    return hashedString
 
-#def showHeaders(headers={}):
-#   if (len(headers.items()) == 0):
-#      headers['Content-type'] = 'text/html'
-#   for envVar, var in headers.items():
-#      print "%s: %s" % (envVar, var)
-#      print cookies.output()
-#      print
+def generateNewAccountHash(user, passw):
+   hashString = user + passw + MAGIC_STRING + str(time.time())
+   hashedString = hashlib.sha256(hashString).hexdigest()
+   return hashedString
+
+def generateForgotHash(user):
+   db_conn.execute('SELECT * FROM users WHERE lower(username)=?', (user, ))
+   conn.commit()
+   result = db_conn.fetchone()
+   passw = "jklsfdlkjfsdljkfsd" #something went wrong if this doesn't get changed
+   if result:
+      passw = result['password']
+
+   hashString = user + passw + MAGIC_STRING + str(time.time())
+   hashedString = hashlib.sha256(hashString).hexdigest()
+   return hashedString
+
+def getUserEmail(user):
+   db_conn.execute('SELECT * FROM users WHERE lower(username)=?', (user, ))
+   conn.commit()
+   result = db_conn.fetchone()
+   if result:
+      passw = result['email']
+   else:
+      passw = None
+   return passw
 
 def checkSession():
    global username
@@ -613,6 +670,9 @@ def addNewUser(formFields):
    # hash password
    formFields['new_pass'] = hashlib.md5(formFields['new_pass']).hexdigest() #hash password
 
+   # get verifyId hash
+   verify_id = generateNewAccountHash(formFields['new_user'], formFields['new_pass'])
+
    # set profile pic
    profile_pic = DEFAULT_PIC
    bg_pic = DEFAULT_BG
@@ -642,7 +702,11 @@ def addNewUser(formFields):
       ''                            # not suspended
    )
    db_conn.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", values)
+
+   # add verify id to verify table
+   db_conn.execute("INSERT INTO verify VALUES (?, ?)", (formFields['new_user'], verify_id))
    conn.commit()
+   newUserEmail(formFields['email'], verify_id)
 
 def updateNewUser(formFields):
    global username
@@ -730,7 +794,6 @@ new_tweet = form.getfirst("tweet-btn", "")
 
 if login:
    doLogin()
-   page = "feed"
 elif all_search or (user_search and page == "user_search"):
    if checkSession():
       if all_search:
@@ -754,6 +817,14 @@ elif page == "user_page":
    page = "user_page"
 elif page == "bleat_page":
    page == "bleat_page"
+elif page == "login_error":
+   page == "login_error"
+elif page == "forgot":
+   page == "forgot"
+elif page == "set_new_pass":
+   page == "set_new_pass"
+elif page == "verify":
+   page == "verify"
 elif page == "sign_up" or sign_up:
    if checkSession():
       headers = "Location: ?page=feed" #if logged in redirect to feed
@@ -948,6 +1019,106 @@ def deleteBleat(bleat_id):
    db_conn.execute('DELETE FROM bleats WHERE bleat_id=?', (bleat_id, ))
    conn.commit()
 
+def newUserEmail(email, verify_id):
+   # Create message container - the correct MIME type is multipart/alternative.
+   msg = MIMEMultipart('alternative')
+   msg['Subject'] = "Verify your new Bitter Account"
+   msg['From'] = EMAIL_FROM
+   msg['To'] = email
+   verify_addr = BASE_URL+"?page=verify&verify_id="+verify_id
+
+   # Create the body of the message (a plain-text and an HTML version).
+   text = "Hi!\nPlease verify your new bitter account by copy & pasting the link below into your web browser.\nIf you didn't create a bitter account please ignore this message.\n%s" % (verify_addr, )
+   html = """\
+   <html>
+     <head></head>
+     <body>
+       <p>Hi!<br>
+          Thanks for creating a new Bitter account!<br>
+          To use your account, click the link below to confirm your email address.
+          <a href="%s">Click here</a>
+          If you didn't create a Bitter account please ignore this message.
+       </p>
+     </body>
+   </html>
+   """ % (verify_addr, )
+   # Record the MIME types of both parts - text/plain and text/html.
+   part1 = MIMEText(text, 'plain')
+   part2 = MIMEText(html, 'html')
+
+   # Attach parts into message container.
+   # the HTML message, is best and preferred.
+   msg.attach(part1)
+   msg.attach(part2)
+   sendEmail(email, msg)
+  
+def sendForgotEmail(user, forgot_id):
+   # insert forgot id into database
+   db_conn.execute("INSERT INTO forgot VALUES (?, ?)", (user, forgot_id))
+   conn.commit()
+
+   # get user's email address
+   email = getUserEmail(user)
+
+   # Create message container - the correct MIME type is multipart/alternative.
+   msg = MIMEMultipart('alternative')
+   msg['Subject'] = "Reset your Bitter Account Password"
+   msg['From'] = EMAIL_FROM
+   msg['To'] = email
+   forgot_addr = BASE_URL+"?page=set_new_pass&forgot_id="+forgot_id
+
+   # Create the body of the message (a plain-text and an HTML version).
+   text = "Hi!\nPlease verify your new bitter account by copy & pasting the link below into your web browser.\nIf you didn't create a bitter account please ignore this message.\n%s" % (forgot_addr, )
+   html = """\
+   <html>
+     <head></head>
+     <body>
+       <p>Hi!<br>
+         There has been a request to reset the password on your Bitter account. To do this please click the link below or copy and paste it into your browser.<br>
+          <a href="%s">%s</a><br>
+          If you didn't request this change, please ignore this message.
+       </p>
+     </body>
+   </html>
+   """ % (forgot_addr, forgot_addr)
+   # Record the MIME types of both parts - text/plain and text/html.
+   part1 = MIMEText(text, 'plain')
+   part2 = MIMEText(html, 'html')
+
+   # Attach parts into message container.
+   # the HTML message, is best and preferred.
+   msg.attach(part1)
+   msg.attach(part2)
+   sendEmail(email, msg)
+
+
+def sendEmail(target, msg):
+   s = smtplib.SMTP(EMAIL_HOST)
+   s.starttls()
+   s.login(EMAIL_FROM,EMAIL_PASS)
+
+   # and message to send - here it is sent as one string.
+   s.sendmail(EMAIL_FROM, target, msg.as_string())
+   s.quit()
+
+def resetPassword(new_pass, forgot_id):
+   # check if forgot id is valid and get username if it is
+   db_conn.execute("SELECT * FROM forgot WHERE forgot_id=(?)", (forgot_id, ))
+   conn.commit()
+   result = db_conn.fetchone()
+   print headers
+   print
+   if result:
+      user = result['username']
+      print user
+      print result
+      db_conn.execute("DELETE FROM forgot WHERE forgot_id=(?)", (forgot_id, ))
+      conn.commit()
+      hashpw = hashlib.md5(new_pass).hexdigest() #hash password
+      db_conn.execute("UPDATE users SET password=(?) WHERE lower(username)=(?)", (hashpw, user.lower()))
+      conn.commit()
+      return True
+   return False
 
 # handle page creation, feed population etc.
 if page != "error":
@@ -987,6 +1158,7 @@ if page != "error":
          else:
             headers = "Location: ?page=feed&msg_type=1&msg=True&user=" + follow_user
             page = "feed"
+
       elif page == "delete":
          targetBleat = form.getfirst("bleat_id", "")
          targetBleat = validBleat(targetBleat)
@@ -998,22 +1170,83 @@ if page != "error":
          page = "feed"
       elif bool(msg):
          follow_user = form.getfirst("user", "")
-         if follow_user:
+         siteVariables['message'] = True
+         msgType = form.getfirst("msg_type", "")
+         myMsg = ''
+         if (msgType == '1' and follow_user):
+            myMsg = "Couldn't find user to listen to"
+         elif (msgType == '2' and follow_user):
+            myMsg = "You are now listening to " + follow_user
+         elif (msgType == '3' and follow_user):
+            myMsg = "You are no longer listening to " + follow_user
+         elif (msgType == '4'):
+            myMsg = "Bleat deleted"
+         else:
+            siteVariables['message'] = False
+         siteVariables['message_txt'] = myMsg
+   elif page == "forgot":
+      forgotSubmit = form.getfirst("forgot_user", "")
+      siteVariables['message'] = False
+      siteVariables['message_txt'] = ""
+      if forgotSubmit:
+         if validUser(forgotSubmit):
+            forgot_id = generateForgotHash(forgotSubmit)
+            sendForgotEmail(forgotSubmit, forgot_id)
             siteVariables['message'] = True
-            msgType = form.getfirst("msg_type", "")
-            myMsg = ''
-            if (msgType == '1'):
-               myMsg = "Couldn't find user to listen to"
-            elif (msgType == '2'):
-               myMsg = "You are now listening to " + follow_user
-            elif (msgType == '3'):
-               myMsg = "You are no longer listening to " + follow_user
-            elif (msgType == '4'):
-               myMsg = "Bleat successfully deleted"
+            siteVariables['message_txt'] = "Email sent. If you don't receive an email, please try again later."
+         else:
+            siteVariables['message'] = True
+            siteVariables['message_txt'] = "Could not find a user by that username. Please try again later."
+   elif page == "set_new_pass":
+      new_pass = form.getfirst("forgot_new_pass", "")
+      forgot_id = form.getfirst("forgot_id", "")
+      siteVariables['message'] = False
+      siteVariables['message_txt'] = ""
+      if not forgot_id:
+         headers = "Location: ?page=home"
+         page = "home"
+      else:
+         if new_pass:
+            if validPassword(new_pass):
+               result = resetPassword(new_pass, forgot_id)
+               if result:
+                  siteVariables['message'] = True
+                  siteVariables['message_txt'] = "Password successfully reset. <a href='?page=home'>Return home</a>"
+               else:
+                  siteVariables['message'] = True
+                  siteVariables['message_txt'] = "Something went wrong, please try again"
             else:
-               siteVariables['message'] = False
-            siteVariables['message_txt'] = myMsg
-
+               siteVariables['message'] = True
+               siteVariables['message_txt'] = "Password must contain at least one digit, one uppercase, and one lowercase letter and be 6-40 characters long. Can include special characters !@#$%_^&*"
+   elif page == "verify":
+      verify_id = form.getfirst("verify_id", "")
+      siteVariables['message'] = False
+      siteVariables['message_txt'] = ""
+      if verify_id:
+         result = verifyAccount(verify_id)
+         if result:
+            siteVariables['message'] = True
+            siteVariables['message_txt'] = "Account successfully verified."
+         else:
+            siteVariables['message'] = True
+            siteVariables['message_txt'] = "Something went wrong, please try again"
+      else:
+         siteVariables['message'] = True
+         siteVariables['message_txt'] = "Something went wrong, please try again"
+              
+   elif page == "login_error":
+      msgType = form.getfirst("msg_type", "")
+      if (msgType == '1'):
+         siteVariables['message'] = True
+         siteVariables['message_txt'] = "Sorry, we couldn't find your account. Please try again."
+      elif (msgType == '2'):
+         siteVariables['message'] = True
+         siteVariables['message_txt'] = "Please verify your email address before logging in.<br><a href='?page=home'>Return Home</a>"
+      else:
+         siteVariables['message'] = False
+         siteVariables['message_txt'] = ""
+         headers = "Location: ?page=home"
+         
    elif page == "sign_up":
       formFields = getNewUserFormFields()
       if sign_up:

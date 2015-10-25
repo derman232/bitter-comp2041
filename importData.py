@@ -64,6 +64,12 @@ def createTables():
    c.execute('''CREATE TABLE sessions (
    username        TEXT,
    sid             TEXT )''')
+   c.execute('''CREATE TABLE verify (
+   username        TEXT,
+   verify_id       TEXT )''')
+   c.execute('''CREATE TABLE forgot (
+   username        TEXT,
+   forgot_id       TEXT )''')
 
 
 
@@ -156,7 +162,8 @@ for a in glob.glob(USER_DIR+"*"):
       userDict[details[0]] = details[1]
    userDict['password'] = hashlib.md5(userDict['password']).hexdigest() #hash password
    values = (
-      userDict['email']         ,
+#      userDict['email']         ,
+      "dpeczek@gmail.com"       ,
       userDict['full_name']     ,
       userDict['password']      ,
       userDict['username']      ,

@@ -22,7 +22,7 @@
          <div class="panel-body">
             <form method="post" id="sign_up-form" enctype="multipart/form-data" autocomplete="off">
 
-               <label for="new_user" class="settings-control-label">Username</label><input id="new_user" class="form-control settings-inputs" name="new_user" type="text" value="{{ formFields|new_user }}" maxlength="15">
+               <label for="new_user" class="settings-control-label">Username</label><input id="new_user" class="form-control settings-inputs" name="new_user" type="text" value="{{ formFields|new_user }}" maxlength="30">
                {{ errorMsgs|username }}
                <br><br>
                <label for="new_pass" class="settings-control-label">Password</label><input id="new_pass" class="form-control settings-inputs" name="new_pass" type="password" value="" maxlength="40">
