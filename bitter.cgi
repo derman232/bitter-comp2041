@@ -860,59 +860,6 @@ def removeFollower(user):
    db_conn.execute("DELETE FROM listeners WHERE username=(?) AND listens=(?)", (username, user))
    conn.commit()
 
-
-
-# manage page selection (and some form submission checking...)
-login = form.getfirst("login-btn", "")
-if DEBUG == True: login = "yes"
-all_search = form.getfirst("main-search", "")
-user_search = form.getfirst("user-search", "")
-sign_up = form.getfirst("sign_up-btn", "")
-update_settings = form.getfirst("settings-btn", "")
-msg = form.getfirst("msg", "")
-new_tweet = form.getfirst("tweet-btn", "")
-
-if login:
-   doLogin()
-elif all_search or (user_search and page == "user_search"):
-   if checkSession():
-      if all_search:
-         page = "search"
-   else:
-      headers = "Location: ?page=home" #if not logged in, take home
-      page = "home"
-elif page == "logout":
-   doLogout()
-elif page == "home":
-   if checkSession():
-      headers = "Location: ?page=feed" #if logged in redirect to feed
-      page = "feed"
-elif page == "feed" or (page == "settings" or update_settings) or page == "followme" or page == "unlisten" or new_tweet or page == "delete" or page == "delete_acc" or page == "suspend_acc" or page == "reactivate":
-   if not checkSession():
-      headers = "Location: ?page=home" #if not logged in redirect home
-      page = "home"
-elif page == "user_page":
-   page = "user_page"
-elif page == "bleat_page":
-   page == "bleat_page"
-elif page == "login_error":
-   page == "login_error"
-elif page == "forgot":
-   page == "forgot"
-elif page == "set_new_pass":
-   page == "set_new_pass"
-elif page == "verify":
-   page == "verify"
-elif page == "sign_up" or sign_up:
-   if checkSession():
-      headers = "Location: ?page=feed" #if logged in redirect to feed
-      page = "feed"
-   else:
-      page = "sign_up"
-else:
-   page = "error"
-
-
 def getTweetFields():
    global siteVariables
 
@@ -1454,6 +1401,59 @@ def resetPassword(new_pass, forgot_id):
       return True
    return False
 
+# manage page selection (and some form submission checking...)
+login = form.getfirst("login-btn", "")
+if DEBUG == True: login = "yes"
+all_search = form.getfirst("main-search", "")
+user_search = form.getfirst("user-search", "")
+sign_up = form.getfirst("sign_up-btn", "")
+update_settings = form.getfirst("settings-btn", "")
+msg = form.getfirst("msg", "")
+new_tweet = form.getfirst("tweet-btn", "")
+
+if login:
+   doLogin()
+elif all_search or (user_search and page == "user_search"):
+   if checkSession():
+      if all_search:
+         page = "search"
+   else:
+      headers = "Location: ?page=home" #if not logged in, take home
+      page = "home"
+elif page == "logout":
+   doLogout()
+elif page == "home":
+   if checkSession():
+      headers = "Location: ?page=feed" #if logged in redirect to feed
+      page = "feed"
+elif page == "feed" or (page == "settings" or update_settings) or page == "followme" or page == "unlisten" or new_tweet or page == "delete" or page == "delete_acc" or page == "suspend_acc" or page == "reactivate":
+   if not checkSession():
+      headers = "Location: ?page=home" #if not logged in redirect home
+      page = "home"
+elif page == "user_page":
+   page = "user_page"
+elif page == "bleat_page":
+   page == "bleat_page"
+elif page == "login_error":
+   page == "login_error"
+elif page == "forgot":
+   page == "forgot"
+elif page == "set_new_pass":
+   page == "set_new_pass"
+elif page == "verify":
+   page == "verify"
+elif page == "sign_up" or sign_up:
+   if checkSession():
+      headers = "Location: ?page=feed" #if logged in redirect to feed
+      page = "feed"
+   else:
+      page = "sign_up"
+else:
+   page = "error"
+
+
+
+
 # handle page creation, feed population etc.
 if page != "error":
    # setup empty global sitevars
@@ -1663,8 +1663,6 @@ if page != "error":
       else:
          headers = "Location: ?page=feed"
          page = "feed"
-
-
 
 # process relevant page
 filename = "templates/"+page+".html"
