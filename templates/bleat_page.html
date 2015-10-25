@@ -10,8 +10,10 @@
 
 <body class="clear-background">
 
+<div class="nav-no-margin">
 {% include (loggedin_header.html) %}
-<div class="large-header-background" style="background: url({{ myDetails|bg_pic }}) no-repeat center; height: 360px; background-size: cover; margin-bottom: 20px;">
+</div>
+<div class="large-header-background" style="background: url({{ myDetails|bg_pic }}) repeat center;">
 
       <div class="col-md-3"></div>
       <div class="feed-tweets col-md-6">

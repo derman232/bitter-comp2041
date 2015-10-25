@@ -301,8 +301,16 @@ input[type="file"] {
 
 
 /* bleat page */
+.nav-no-margin .navbar {
+   margin-bottom: 0px;
+}
 .large-bleet-panel {
    padding: 40px;
+}
+.large-header-background {
+   height: 100%;
+   background-size: cover;
+   padding-top: 20px;
 }
 .large-bleet-avatar-wrapper {
    display: inline-block;
