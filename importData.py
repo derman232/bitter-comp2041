@@ -11,20 +11,20 @@ import sqlite3
 import re
 import hashlib
 
-CSE = True
+CSE = False
 
 if CSE:
-   USER_DIR    = "/import/adams/2/z3459551/public_html/bitter/dataset-small/users/"
-   BLEAT_DIR   = "/import/adams/2/z3459551/public_html/bitter/dataset-small/bleats/"
-   DEFAULT_PIC = "https://www.gravatar.com/avatar/d489b737cd6a6074c634ebfbb2a39396.jpg"
-   DEFAULT_BG  = "http://localhost/~derek/bitter/img/default-banner.jpeg"
-   PROFILE_DIR = "http://www.cse.unsw.edu.au/~cs2041/15s2/assignments/bitter/dataset-small/users/"
+   USER_DIR    = "/import/adams/2/z3459551/public_html/bitter/dataset-huge/users/"
+   BLEAT_DIR   = "/import/adams/2/z3459551/public_html/bitter/dataset-huge/bleats/"
+   DEFAULT_PIC = "http://cgi.cse.unsw.edu.au/~z3459551/bitter/img/default-dp.png"
+   DEFAULT_BG  = "http://cgi.cse.unsw.edu.au/~z3459551/bitter/img/default-banner.jpeg"
+   PROFILE_DIR = "http://www.cse.unsw.edu.au/~cs2041/15s2/assignments/bitter/dataset-huge/users/"
 else:
-   USER_DIR    = "/Users/derek/Sites/bitter/dataset-small/users/"
-   BLEAT_DIR   = "/Users/derek/Sites/bitter/dataset-small/bleats/"
-   DEFAULT_PIC = "https://www.gravatar.com/avatar/d489b737cd6a6074c634ebfbb2a39396.jpg"
-   DEFAULT_BG  = "http://localhost/~derek/bitter/img/default-banner.jpeg"
-   PROFILE_DIR = "http://www.cse.unsw.edu.au/~cs2041/15s2/assignments/bitter/dataset-small/users/"
+   USER_DIR    = "/Users/derek/Sites/bitter/dataset-huge/users/"
+   BLEAT_DIR   = "/Users/derek/Sites/bitter/dataset-huge/bleats/"
+   DEFAULT_PIC = "http://cgi.cse.unsw.edu.au/~z3459551/bitter/img/default-dp.png"
+   DEFAULT_BG  = "http://cgi.cse.unsw.edu.au/~z3459551/bitter/img/default-banner.jpeg"
+   PROFILE_DIR = "http://www.cse.unsw.edu.au/~cs2041/15s2/assignments/bitter/dataset-huge/users/"
 
 USER_MATCH = r'@[a-zA-Z0-9_]{1,15}'
 
@@ -165,8 +165,8 @@ for a in glob.glob(USER_DIR+"*"):
       userDict[details[0]] = details[1]
    userDict['password'] = hashlib.md5(userDict['password']).hexdigest() #hash password
    values = (
-#      userDict['email']         ,
-      "dpeczek@gmail.com"       ,
+      userDict['email']         ,
+#      "dpeczek@gmail.com"       ,
       userDict['full_name']     ,
       userDict['password']      ,
       userDict['username']      ,

@@ -18,6 +18,7 @@ from demplate import *
 from collections import defaultdict
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from BeautifulSoup import BeautifulSoup
 
 DB_NAME = "bitter.db"
 MAGIC_STRING = "sjdkfls243u892rjf" # for hashes
@@ -28,8 +29,8 @@ MAX_IMG_SIZE = 1024*1024*5  # 5  mb tweet attachments
 MAX_DESC_LEN = 100
 DEBUG = False
 DEBUG_HEADERS = False
-DEFAULT_PIC = "https://www.gravatar.com/avatar/d489b737cd6a6074c634ebfbb2a39396.jpg"
-DEFAULT_BG  = "http://localhost/~derek/bitter/img/default-banner.jpeg"
+DEFAULT_PIC = "http://cgi.cse.unsw.edu.au/~z3459551/bitter/img/default-dp.png"
+DEFAULT_BG  = "http://cgi.cse.unsw.edu.au/~z3459551/bitter/img/default-banner.jpeg"
 VALID_MIME_IMAGES       = ["image/jpeg", "image/png"]
 VALID_FILE_EXTS         = ["jpg", "jpeg", "png"]
 VALID_MIME_IMAGES_TWTS  = ["image/jpeg", "image/png", "image/gif", "video/mp4"]
@@ -38,10 +39,13 @@ UPLOAD_DIR = "userimg/"
 USER_MATCH = r'^@[a-zA-Z0-9_]{1,30}$'
 KEYWORD_MATCH = r'^#[a-zA-Z0-9_]*$'
 NUM_RESULTS = 10
-PREVIEW_RESULTS = 2
+PREVIEW_RESULTS = 1 # offset by one
 EMAIL_HOST = 'smtp.gmail.com:587'
 EMAIL_FROM = "bittercs204115s2@gmail.com"
 EMAIL_PASS = "Bitter2041"
+CLEAN_UP_RE = r"(<[^>]*>)"
+VALID_TAG_RE = r"</?[b|i|u]>"
+
 BASE_URL = os.environ.get('SCRIPT_URI')
 if BASE_URL == None:
    BASE_URL = "http://localhost/~derek/bitter/"
@@ -610,6 +614,10 @@ def processNewUserForm (formFields, settings=False, emptyErrors=False):
    home_long = formFields['home_long']
    description = formFields['description']
 
+   # cleanup html in name and description
+   formFields['full_name'] = cleanUpText(formFields['full_name'], True)
+   formFields['description'] = cleanUpText(formFields['description'])
+
    # check that required fields are complete if not settings form
    if not settings:
       if not new_user:
@@ -1012,6 +1020,25 @@ def getHighestId():
    except:
       return 0
 
+def cleanUpText(text, noTags=False):
+   words = re.split(CLEAN_UP_RE, text)
+   cleanWords = []
+   for word in words:
+      if re.match(CLEAN_UP_RE, word):
+         if re.match(VALID_TAG_RE, word) and not noTags:
+            cleanWords.append(word)
+      else:
+         cleanWords.append(word)
+   text = ''.join(cleanWords)
+
+   # cleanup incorrectly closed html
+   soup = BeautifulSoup(text)
+   text = soup.prettify()
+
+   if text == '':
+      text = " "
+   return text
+
 def insertTweet(formFields):
    global username
    newTweet   = formFields['new-tweet']
@@ -1020,6 +1047,10 @@ def insertTweet(formFields):
    tweetMedia = formFields['tweet-media']
    inReplyTo  = formFields['in-reply-to']
    curTime = int(time.mktime(time.gmtime()))
+
+
+   # cleanup tweet
+   newTweet = cleanUpText(newTweet)
 
    bleat_id = getHighestId() + 1
 
