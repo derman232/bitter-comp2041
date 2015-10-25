@@ -1184,12 +1184,33 @@ def notifyListenerEmail(email, username):
    msg.attach(part2)
    sendEmail(email, msg)
 
+def findReplies(bleat_id):
+   db_conn.execute('SELECT * FROM bleats WHERE in_reply_to=(?)', (bleat_id, ))
+   bleets = []
+   for row in db_conn:
+      bleets.append(row['bleat_id'])
+   return bleets
+
 def deleteBleat(bleat_id):
    db_conn.execute('SELECT * FROM bleats WHERE bleat_id=(?)', (bleat_id, ))
-   files = db_conn.fetchone()['files']
-   #TODO clear 'in_reply_to'
-   #TODO delete images
-   db_conn.execute('DELETE FROM bleats WHERE bleat_id=?', (bleat_id, ))
+   result = db_conn.fetchone()
+   if not result:
+      return
+
+   #clear 'in_reply_to' on higher up bleets
+   replies = findReplies(bleat_id)
+   for reply in replies:
+      db_conn.execute("UPDATE bleats SET in_reply_to=(?) WHERE bleat_id=(?)", ('', reply))
+      conn.commit()
+      
+   #delete files
+   files = int(result['files'])
+   for fileNum in xrange(files):
+      key = "file_"+str(fileNum+1)
+      fileName = result[key]
+      os.remove(fileName)
+
+   db_conn.execute('DELETE FROM bleats WHERE bleat_id=(?)', (bleat_id, ))
    conn.commit()
 
 def newUserEmail(email, verify_id):
