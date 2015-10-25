@@ -64,3 +64,6 @@ if not db_exists:
    os.chmod(DB_FILENAME, 0700)
 else:
    print "All good, we found the database"
+
+print "set permisssions on .htaccess file just to be safe"
+os.chmod(".htacces", 755)
