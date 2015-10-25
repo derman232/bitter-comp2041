@@ -1,0 +1,43 @@
+<html>
+<head><title>Bitter</title></head>
+<link rel="stylesheet" type="text/css" href="bootstrap/css/bootstrap.css">
+<link rel="stylesheet" type="text/css" href="css/styles.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+<script src="js/scripts.js"></script>
+<script src="js/maps.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBLtOAK5mkzR8Kuu3zWokYW5mDSwZHChTw&libraries=places&callback=initAutocomplete" async defer></script>
+
+<body class="clear-background">
+{% include (loggedout_header.html) %}
+
+<div class="feed-wrapper row">
+   <div class="feed-trends col-md-3">
+   </div>
+   <div class="feed-tweets col-md-6">
+      <div class="panel panel-default suggestions-panel">
+         <div class="panel-heading">
+            <h3 class="panel-title">Forgot your password?</h3>
+            <span class="grey-text">Enter your username below, and we'll send an email to you so you can reset your password</span>
+         </div>
+         <div class="panel-body">
+            <form method="post" id="forgot-form">
+
+               <label for="forgot_user" class="settings-control-label">Username</label><input id="forgot_user" class="form-control settings-inputs" name="forgot_user" type="text" value="" maxlength="30">
+               <br><br>
+               <button class="btn btn-primary sign_up-btn btn-load" name="forgot-btn" id="forgot-btn" value="submit">Submit</button>
+              </form>
+              {% if message %}
+              {{ message_txt }}
+              {% endif %}
+         </div>
+      </div>
+   </div>
+   <div class="feed-trends col-md-3">
+   </div>
+
+
+   </div>
+</div>
+
+</body>
+</html>
