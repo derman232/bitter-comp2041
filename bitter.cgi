@@ -42,15 +42,10 @@ NUM_RESULTS = 10
 PREVIEW_RESULTS = 1 # offset by one
 EMAIL_HOST = 'smtp.gmail.com:587'
 EMAIL_FROM = "bittercs204115s2@gmail.com"
-EMAIL_PASS = "Bitter2041"
+EMAIL_PASS = "" # should prompt for this
 CLEAN_UP_RE = r"(<[^>]*>)"
 VALID_TAG_RE = r"</?[b|i|u]>"
 TIME_OFFSET = 60*60*21 # obviously php is king here.
-
-BASE_URL = os.environ.get('SCRIPT_URI')
-if BASE_URL == None:
-   BASE_URL = "http://localhost/~derek/bitter/"
-
 
 # get params
 form = cgi.FieldStorage()
